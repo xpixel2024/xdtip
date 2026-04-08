@@ -24,7 +24,7 @@ app.set("views", path.join(__dirname, "views"));
 // ===================
 
 // ROUTES (CLEAN URLS)
-app.get("*.html", (req, res) => {
+app.get(/\.html$/, (req, res) => {
   const clean = req.path.replace(".html", "");
   res.redirect(clean);
 });
