@@ -29,10 +29,11 @@ app.get("*.html", (req, res) => {
   res.redirect(clean);
 });
 
+// PROTECTED ROUTES FIRST
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
-
 
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public/login.html"));
@@ -40,6 +41,32 @@ app.get("/login", (req, res) => {
 
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "public/dashboard.html"));
+});
+
+
+// ⚠️ USERNAME ROUTE (KEEP LAST)
+app.get("/:username", async (req, res) => {
+
+  const username = req.params.username;
+
+  // 🚫 block system routes
+  const blocked = ["login", "dashboard", "admin", "api"];
+
+  if (blocked.includes(username)) {
+    return res.redirect("/");
+  }
+
+  const { data } = await supabase
+    .from("users")
+    .select("*")
+    .eq("username", username)
+    .maybeSingle();
+
+  if (!data) {
+    return res.send("User not found");
+  }
+
+  res.render("tip", { user: data });
 });
 
 
