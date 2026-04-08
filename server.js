@@ -71,36 +71,6 @@ app.post("/api/tip", async (req, res) => {
     res.json({ success: true });
 });
 
-    if (error) {
-        console.error("Supabase Error:", error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
-
-    res.json({ success: true });
-});
-
-app.post("/api/tip", async (req, res) => {
-    const { username, name, message, amount, payment_id } = req.body;
-
-    const { error } = await supabase
-        .from("tips")
-        .insert([
-            {
-                username: username,    // The recipient's username
-                sender_name: name,
-                message: message,
-                amount: amount,
-                payment_id: payment_id
-            }
-        ]);
-
-    if (error) {
-        console.error("Supabase Error:", error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
-    res.json({ success: true });
-});
-
 
 // ===================
 // USERNAME ROUTE (ONLY ONE! 🔥)
