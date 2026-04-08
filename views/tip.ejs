@@ -6,7 +6,6 @@
     <title>Uplink: Support <%= user.name %></title>
     
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
     <style>
@@ -26,7 +25,6 @@
           overflow-x: hidden;
         }
 
-        /* CRT Scanlines and Grid Background */
         .bgfx {
           position: fixed;
           top: 0; left: 0; width: 100%; height: 100%;
@@ -47,7 +45,6 @@
           pointer-events: none;
         }
 
-        /* LAYOUT */
         .container {
           display: flex;
           min-height: 100vh;
@@ -56,7 +53,6 @@
           padding: 20px;
         }
 
-        /* TERMINAL CARD */
         .card {
           background: var(--panel-bg);
           border: 1px solid rgba(0, 243, 255, 0.2);
@@ -68,7 +64,6 @@
           position: relative;
         }
 
-        /* Sci-fi corner brackets */
         .card::before, .card::after {
           content: ''; 
           position: absolute; 
@@ -91,13 +86,11 @@
           letter-spacing: 1px;
         }
 
-        /* PROFILE SECTION */
         .profile-header {
           text-align: center;
           margin-bottom: 30px;
         }
 
-        /* Hexagon Avatar */
         .avatar-wrapper {
           position: relative;
           width: 110px;
@@ -147,7 +140,6 @@
           margin-top: 5px;
         }
 
-        /* FORM ELEMENTS */
         .form-group {
           margin-bottom: 20px;
         }
@@ -184,7 +176,6 @@
           box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
         }
 
-        /* Currency Input Wrapper */
         .currency-wrapper {
           position: relative;
         }
@@ -211,7 +202,6 @@
           margin-top: 5px;
         }
 
-        /* BUTTON */
         .btn {
           width: 100%;
           padding: 15px;
@@ -243,7 +233,6 @@
           box-shadow: none;
           cursor: not-allowed;
         }
-
     </style>
 </head>
 <body>
@@ -269,12 +258,12 @@
                 <div class="creator-handle">> ID: @<%= user.username %></div>
             </div>
 
-            <form id="payment-form" class="space-y-5">
-    <button type="submit" id="pay-button" 
-        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl">
-        TRANSMIT CREDIT
-    </button>
-</form>
+            <form id="payment-form">
+                
+                <div class="form-group">
+                    <label>> SENDER IDENTITY (NAME)</label>
+                    <input type="text" id="sender-name" required placeholder="Enter your name...">
+                </div>
 
                 <div class="form-group">
                     <label>> TRANSMIT PAYLOAD (MESSAGE)</label>
@@ -301,19 +290,16 @@
     const form = document.getElementById('payment-form');
     const payBtn = document.getElementById('pay-button');
 
-    // These variables MUST come from your EJS server
     const creatorId = "<%= user.id %>";
     const creatorName = "<%= user.name %>";
 
     form.addEventListener('submit', async (e) => {
-        // 1. THIS PREVENTS THE PAGE FROM RELOADING
         e.preventDefault();
 
         const name = document.getElementById('sender-name').value;
         const message = document.getElementById('sender-message').value;
         const amount = document.getElementById('tip-amount').value;
 
-        // 2. BASIC VALIDATION
         if (!amount || amount < 10) {
             alert("Minimum amount is ₹10");
             return;
@@ -322,14 +308,14 @@
         payBtn.innerText = "INITIALIZING...";
         payBtn.disabled = true;
 
-        // 3. RAZORPAY CONFIGURATION
         const options = {
-            "key": "rzp_test_Say77hRQvGF2Kd", // <--- MUST START WITH rzp_live_ or rzp_test_
+            "key": "rzp_test_Say77hRQvGF2Kd", 
             "amount": parseInt(amount) * 100, 
             "currency": "INR",
             "name": "Tip for " + creatorName,
+            "description": "Secure Credit Transmission",
             "handler": async function (response) {
-                // This code runs ONLY after payment success
+                payBtn.innerText = "UPLOADING DATA...";
                 try {
                     const saveResponse = await fetch('/api/tip', {
                         method: 'POST',
@@ -347,16 +333,21 @@
                     if (result.success) {
                         alert("CREDIT TRANSMITTED SUCCESSFULLY!");
                         window.location.reload();
+                    } else {
+                        alert("TRANSMISSION ERROR: " + (result.error || "Unknown"));
                     }
                 } catch (err) {
-                    alert("Payment success, but database error. Save this ID: " + response.razorpay_payment_id);
+                    alert("PROTOCOL ERROR: Connection failed. Log ID: " + response.razorpay_payment_id);
                 }
             },
             "modal": {
                 "ondismiss": function() {
-                    payBtn.innerText = "TRANSMIT CREDIT";
+                    payBtn.innerText = "[ TRANSMIT CREDITS ]";
                     payBtn.disabled = false;
                 }
+            },
+            "theme": {
+                "color": "#00f3ff"
             }
         };
 
@@ -367,7 +358,7 @@
             console.error("Razorpay fail:", err);
             alert("Razorpay failed to load. Check your Key ID.");
             payBtn.disabled = false;
-            payBtn.innerText = "TRANSMIT CREDIT";
+            payBtn.innerText = "[ TRANSMIT CREDITS ]";
         }
     });
 </script>
