@@ -659,6 +659,42 @@ async function logout(){
   await client.auth.signOut();
   location.href="https://xdtip.in/";
 }
+
+async function fetchTips(myUsername) {
+    const tableBody = document.getElementById("transmissionBody");
+
+    // Scanning tips table where username = your username
+    const { data: tips, error } = await client
+        .from("tips")
+        .select("*")
+        .eq("username", myUsername) 
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        tableBody.innerHTML = "<tr><td colspan='4' style='color:red;'>ERROR: DATA_CORRUPTED</td></tr>";
+        return;
+    }
+
+    if (!tips || tips.length === 0) {
+        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; opacity:0.5;'>NO TRANSMISSIONS DETECTED</td></tr>";
+        return;
+    }
+
+    tableBody.innerHTML = ""; 
+    tips.forEach(tip => {
+        const date = new Date(tip.created_at).toLocaleString();
+        const row = `
+            <tr>
+                <td style="color: var(--neon-cyan); font-weight:bold;">${tip.sender_name}</td>
+                <td style="color: #8fa1d0; font-style: italic;">"${tip.message || '---'}"</td>
+                <td style="color: var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
+                <td style="font-size: 12px; opacity:0.6;">${date}</td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+    });
+}
+  
 </script>
 
 <div class="footer">
