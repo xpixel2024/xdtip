@@ -325,10 +325,7 @@
                 "currency": "INR",
                 "name": "TRANSMISSION TO " + creatorName.toUpperCase(),
                 "description": "SUPPORT NODE ACTIVE",
-                "handler": async function (response) {
-                    // 1. Payment Successful! Now tell the server to save it to Supabase
-                    payBtn.innerText = "SAVING TELEMETRY DATA...";
-                    
+                handler
                     try {
                         const saveResponse = await fetch('/api/tip', {
                             method: 'POST',
