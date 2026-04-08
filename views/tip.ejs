@@ -318,11 +318,12 @@
                 payBtn.innerText = "UPLOADING DATA...";
                 try {
                     // Inside the Razorpay handler in tip.ejs
+// Inside the Razorpay handler in tip.ejs
 const saveResponse = await fetch('/api/tip', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-        recipient_username: "<%= user.username %>", // Using username instead of ID
+        username: "<%= user.username %>", // Captured from the current page's creator
         name: name,
         message: message,
         amount: amount,
