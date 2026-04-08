@@ -493,7 +493,7 @@ async function loadUser(){
   const {data}=await client.auth.getUser();
 
   if(!data.user){
-    location.href="login.html";
+    location.href="/login";
     return;
   }
 
@@ -657,7 +657,7 @@ function copy(id){
 // LOGOUT
 async function logout(){
   await client.auth.signOut();
-  location.href="login.html";
+  location.href="https://xdtip.in/";
 }
 </script>
 
