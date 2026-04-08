@@ -4,7 +4,7 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
-// 🔥 YOUR SUPABASE KEYS
+// 🔥 SUPABASE
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -20,16 +20,17 @@ app.set("views", path.join(__dirname, "views"));
 
 
 // ===================
-// STATIC PAGES
+// CLEAN .html URL
 // ===================
-
-// ROUTES (CLEAN URLS)
 app.get(/\.html$/, (req, res) => {
   const clean = req.path.replace(".html", "");
   res.redirect(clean);
 });
 
-// PROTECTED ROUTES FIRST
+
+// ===================
+// STATIC ROUTES
+// ===================
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
@@ -44,71 +45,65 @@ app.get("/dashboard", (req, res) => {
 });
 
 
-// ⚠️ USERNAME ROUTE (KEEP LAST)
-app.get("/:username", async (req, res) => {
-
-  const username = req.params.username;
-
-  // 🚫 block system routes
-  const blocked = ["login", "dashboard", "admin", "api"];
-
-  if (blocked.includes(username)) {
-    return res.redirect("/");
-  }
-
-  const { data } = await supabase
-    .from("users")
-    .select("*")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (!data) {
-    return res.send("User not found");
-  }
-
-  res.render("tip", { user: data });
-});
-
-
 // ===================
-// TIP PAGE
-// ===================
-
-app.get("/:username", async (req, res) => {
-
-  const username = req.params.username;
-
-  const { data } = await supabase
-    .from("users")
-    .select("*")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (!data) {
-    return res.send("User not found");
-  }
-
-  res.render("tip", { user: data });
-});
-
-
-// ===================
-// SAVE TIP
+// SAVE TIP API
 // ===================
 
 app.post("/api/tip", async (req, res) => {
+  try {
+    const { creatorId, name, message, amount, payment_id } = req.body;
 
-  const { creatorId, name, message, amount, payment_id } = req.body;
+    await supabase.from("tips").insert({
+      creator_id: creatorId,
+      sender: name,
+      message,
+      amount,
+      payment_id
+    });
 
-  await supabase.from("tips").insert({
-    creator_id: creatorId,
-    sender: name,
-    message,
-    amount,
-    payment_id
-  });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.json({ success: false });
+  }
+});
 
-  res.json({ success: true });
+
+// ===================
+// USERNAME ROUTE (ONLY ONE! 🔥)
+// ===================
+
+app.get("/:username", async (req, res) => {
+  try {
+    const username = req.params.username;
+
+    // 🚫 block system routes
+    const blocked = ["login", "dashboard", "admin", "api"];
+
+    if (blocked.includes(username)) {
+      return res.redirect("/");
+    }
+
+    // 🔥 FIX: use ilike (case-insensitive)
+    const { data } = await supabase
+      .from("users")
+      .select("*")
+      .ilike("username", username)
+      .maybeSingle();
+
+    console.log("Searching username:", username);
+    console.log("DB result:", data);
+
+    if (!data) {
+      return res.send("User not found");
+    }
+
+    res.render("tip", { user: data });
+
+  } catch (err) {
+    console.error(err);
+    res.send("Server error");
+  }
 });
 
 
