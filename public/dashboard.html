@@ -545,6 +545,26 @@ async function loadUser(){
   }
 }
 
+  async function loadDashboard() {
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) { window.location.href = "/login"; return; }
+
+    userId = user.id;
+
+    const { data: profile } = await client
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+    if (profile && profile.username) {
+        // ... set your UI elements ...
+        
+        // 🔥 CRITICAL: Pass the username into the function here!
+        fetchTips(profile.username); 
+    }
+}
+
 loadUser();
 
 // SAVE PROFILE + LOGO
