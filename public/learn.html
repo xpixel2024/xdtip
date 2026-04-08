@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // URL Cleaner Script
+        if (window.location.pathname.endsWith(".html")) {
+            var clean = window.location.pathname.replace(".html", "");
+            window.history.replaceState(null, "", clean);
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="XDTIP is India's premier monetization infrastructure for streamers. Accept UPI donations with instant settlement, zero-lag overlays, and 92% revenue retention. Built by XDFUN.">
+    <title>XDTip | System Architecture</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+          --neon-cyan: #00f3ff;
+          --neon-magenta: #ff00ea;
+          --bg-dark: #03040b;
+          --panel-bg: rgba(5, 8, 20, 0.85);
+          --grid-color: rgba(0, 243, 255, 0.05);
+        }
+
+        body {
+          margin: 0;
+          font-family: 'Rajdhani', sans-serif;
+          background-color: var(--bg-dark);
+          color: #c8d3f5;
+          overflow-x: hidden;
+          line-height: 1.6;
+        }
+
+        /* CRT Scanlines and Grid Background */
+        .bgfx {
+          position: fixed;
+          top: 0; left: 0; width: 100%; height: 100%;
+          z-index: -1;
+          background-image: 
+            linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+          background-size: 40px 40px;
+        }
+
+        .bgfx::after {
+          content: "";
+          position: absolute;
+          top: 0; left: 0; width: 100%; height: 100%;
+          background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                      linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+          background-size: 100% 4px, 3px 100%;
+          pointer-events: none;
+        }
+
+        /* TOP NAV */
+        .nav {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 40px;
+          background: rgba(0, 0, 0, 0.9);
+          border-bottom: 2px solid var(--neon-cyan);
+          box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+          height: 70px;
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+        }
+
+        .nav-brand {
+          font-size: 26px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          color: var(--neon-cyan);
+          text-shadow: 0 0 8px var(--neon-cyan);
+          display: flex;
+          align-items: center;
+          text-decoration: none;
+        }
+
+        .nav-brand img {
+          height: 35px;
+          margin-right: 15px;
+          filter: drop-shadow(0 0 5px var(--neon-cyan));
+        }
+
+        .nav-links {
+          display: flex;
+          height: 100%;
+        }
+
+        .nav-links a {
+          display: flex;
+          align-items: center;
+          padding: 0 25px;
+          color: #7b8ebd;
+          text-decoration: none;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 15px;
+          text-transform: uppercase;
+          transition: 0.3s;
+          border-bottom: 2px solid transparent;
+        }
+
+        .nav-links a:hover {
+          color: var(--neon-cyan);
+          background: rgba(0, 243, 255, 0.05);
+          border-bottom: 2px solid var(--neon-cyan);
+          text-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* BUTTONS */
+        .btn {
+          display: inline-block;
+          padding: 12px 25px;
+          border: none;
+          cursor: pointer;
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 700;
+          font-size: 16px;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          text-decoration: none;
+          position: relative;
+          overflow: hidden;
+          transition: 0.3s;
+          clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+        }
+
+        .primary {
+          background: rgba(0, 243, 255, 0.1);
+          color: var(--neon-cyan);
+          border: 1px solid var(--neon-cyan);
+          box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.3);
+        }
+
+        .primary:hover {
+          background: var(--neon-cyan);
+          color: #000;
+          box-shadow: 0 0 25px var(--neon-cyan);
+        }
+
+        .nav-btn-wrapper {
+          display: flex;
+          align-items: center;
+        }
+
+        /* HERO SECTION */
+        .hero {
+          text-align: center;
+          padding: 100px 20px 60px;
+          max-width: 1000px;
+          margin: 0 auto;
+          position: relative;
+        }
+
+        .glow-spot {
+          position: absolute;
+          width: 400px;
+          height: 400px;
+          background: var(--neon-cyan);
+          filter: blur(180px);
+          opacity: 0.15;
+          border-radius: 50%;
+          z-index: -1;
+          top: -50px;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .eyebrow {
+          color: var(--neon-cyan);
+          font-family: 'Share Tech Mono', monospace;
+          font-weight: 700;
+          letter-spacing: 3px;
+          font-size: 14px;
+          text-transform: uppercase;
+          margin-bottom: 25px;
+          display: inline-block;
+          border: 1px solid rgba(0, 243, 255, 0.3);
+          padding: 5px 15px;
+          background: rgba(0, 243, 255, 0.05);
+        }
+
+        h1 {
+          font-size: 64px;
+          font-weight: 700;
+          margin-bottom: 25px;
+          line-height: 1.1;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: #fff;
+          text-shadow: 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        .highlight {
+          color: var(--neon-cyan);
+          text-shadow: 0 0 15px var(--neon-cyan);
+        }
+
+        .subtitle {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 18px;
+          color: #8fa1d0;
+          max-width: 750px;
+          margin: 0 auto 50px;
+        }
+
+        /* MISSION SECTION */
+        .mission-box {
+          background: var(--panel-bg);
+          border: 1px solid rgba(0, 243, 255, 0.2);
+          padding: 50px;
+          margin: 40px auto;
+          max-width: 900px;
+          text-align: center;
+          backdrop-filter: blur(10px);
+          position: relative;
+          box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.05);
+        }
+
+        /* Sci-fi corners */
+        .mission-box::before, .mission-box::after {
+          content: ''; position: absolute; width: 30px; height: 30px; border: 2px solid var(--neon-cyan);
+        }
+        .mission-box::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .mission-box::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+        .mission-box h2 { 
+          font-size: 32px; 
+          margin-top: 0;
+          margin-bottom: 25px; 
+          color: var(--neon-cyan); 
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+        
+        .mission-text p {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 16px;
+          color: #c8d3f5;
+          margin-bottom: 20px;
+        }
+
+        /* FOUNDER QUOTE */
+        .quote-container {
+          max-width: 850px;
+          margin: 100px auto;
+          position: relative;
+          padding-left: 50px;
+        }
+
+        .quote-line {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 3px;
+          background: linear-gradient(to bottom, var(--neon-magenta), transparent);
+          box-shadow: 0 0 10px var(--neon-magenta);
+        }
+
+        .quote-text {
+          font-size: 24px;
+          font-weight: 500;
+          color: #fff;
+          line-height: 1.5;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .founder {
+          margin-top: 30px;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 14px;
+          color: #8fa1d0;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+
+        .founder-img {
+          width: 50px;
+          height: 50px;
+          background: #111;
+          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+          border: none;
+          position: relative;
+        }
+        
+        .founder-img-wrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 54px;
+          height: 54px;
+          background: var(--neon-magenta);
+          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        /* FEATURES GRID (2x2) */
+        .features-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr; 
+          gap: 30px;
+          max-width: 1100px;
+          margin: 100px auto;
+          padding: 0 20px;
+        }
+
+        .card {
+          background: var(--panel-bg);
+          border: 1px solid rgba(0, 243, 255, 0.15);
+          padding: 40px;
+          backdrop-filter: blur(10px);
+          transition: all 0.4s ease;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .card::before, .card::after {
+          content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--neon-cyan); transition: 0.3s;
+        }
+        .card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+        .card:hover {
+          border-color: rgba(0, 243, 255, 0.5);
+          transform: translateY(-8px);
+          box-shadow: 0 15px 30px rgba(0, 243, 255, 0.1);
+        }
+        .card:hover::before, .card:hover::after { width: 30px; height: 30px; }
+
+        .stat-big {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 56px;
+          font-weight: 700;
+          color: var(--neon-cyan);
+          margin-bottom: 10px;
+          display: block;
+          line-height: 1;
+          text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+        }
+
+        .card h3 {
+          font-size: 22px;
+          margin: 0 0 15px 0;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+        }
+
+        .card p { 
+          color: #8fa1d0; 
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 15px; 
+          margin: 0; 
+        }
+
+        /* CTA SECTION */
+        .cta-section {
+          text-align: center;
+          padding: 100px 20px;
+          background: radial-gradient(circle at center, rgba(0, 243, 255, 0.08) 0%, rgba(5,5,5,0) 60%);
+          margin-top: 50px;
+          border-top: 1px solid rgba(0, 243, 255, 0.1);
+        }
+
+        /* FOOTER */
+        .footer {
+          text-align: center;
+          padding: 30px;
+          border-top: 1px solid rgba(0, 243, 255, 0.2);
+          background: rgba(0, 0, 0, 0.8);
+          color: #55678a;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 14px;
+          letter-spacing: 1px;
+        }
+        
+        .footer a {
+          color: #55678a;
+          text-decoration: none;
+          transition: 0.3s;
+          margin: 0 10px;
+        }
+
+        .footer a:hover {
+          color: var(--neon-cyan);
+          text-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* MOBILE OPTIMIZATION */
+        @media (max-width: 768px) {
+            h1 { font-size: 42px; }
+            .hero { padding-top: 80px; }
+            .mission-box { padding: 40px 25px; }
+            .quote-text { font-size: 20px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .nav-links { display: none; } /* Simplified mobile nav */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bgfx"></div>
+
+    <div class="nav">
+        <a href="https://xdtip.in/" class="nav-brand">
+            <img src="images/logo.png" alt="XDTIP">
+            XD_TIP // ARCHIVE
+        </a>
+        <div class="nav-links">
+            <a href="https://xdtip.in/">PLATFORM</a>
+        </div>
+        <div class="nav-btn-wrapper">
+            <a href="https://xdtip.in/login" class="btn primary">DASHBOARD UPLINK</a>
+        </div>
+    </div>
+
+    <div class="hero">
+        <div class="glow-spot"></div>
+        <span class="eyebrow">[ SYSTEM.INFO ]</span>
+        <h1>The Operating System for<br><span class="highlight">India's Creator Economy.</span></h1>
+        <p class="subtitle">
+            > We are replacing outdated donation systems with a high-velocity, low-latency financial layer built specifically for Indian streamers.
+        </p>
+    </div>
+
+    <div class="mission-box">
+        <h2>THE MISSION BLUEPRINT</h2>
+        <div class="mission-text">
+            <p>
+                Content creation is labor. Whether you are grinding competitive ranked queues or entertaining thousands of live viewers, 
+                you are building value. However, traditional platforms dilute that value through exorbitant fees and weeks-long settlement delays.
+            </p>
+            <p style="color: var(--neon-cyan); margin-top: 25px; border-top: 1px dashed rgba(0,243,255,0.2); padding-top: 25px;">
+                > XDTIP WAS ENGINEERED TO DISMANTLE THESE BARRIERS. WE EMPOWER CREATORS TO ACCEPT UPI SUPPORT FROM FANS INSTANTLY, SECURELY, AND WITH MAXIMUM REVENUE RETENTION.
+            </p>
+        </div>
+    </div>
+
+    <div class="quote-container">
+        <div class="quote-line"></div>
+        <p class="quote-text">
+            "I didn't build XDTIP just to make another platform; I built it to solve a pain point I lived through daily. 
+            The Indian gaming ecosystem deserves infrastructure that moves as fast as our gameplay. 
+            No delays. No hidden cuts. Just pure performance."
+        </p>
+        <div class="founder">
+            <div class="founder-img-wrapper">
+              <div class="founder-img" style="background: url('https://ui-avatars.com/api/?name=X+D&background=000&color=ff00ea') center/cover;"></div>
+            </div>
+            <div>
+                <span style="color:#fff; font-family:'Rajdhani', sans-serif; font-size:18px; font-weight:700;">XDFUN</span><br>
+                <span style="color: var(--neon-magenta); font-size: 12px; letter-spacing: 0.5px;">// FOUNDER & ARCHITECT</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-grid">
+        <div class="card">
+            <span class="stat-big">94%</span>
+            <h3>Revenue Retention</h3>
+            <p>> While industry standards demand a 40-50% cut of your hard-earned money, XDTIP operates on a minimal operational fee model. <strong>You keep the wealth you generate.</strong></p>
+        </div>
+
+        <div class="card">
+            <span class="stat-big" style="color: var(--neon-magenta); text-shadow: 0 0 15px rgba(255, 0, 234, 0.4);">UPI</span>
+            <h3>Weekly Settlement</h3>
+            <p>> Built natively for India's Unified Payments Interface. Bypassing international holding periods, your funds move directly from fan to creator in real-time.</p>
+        </div>
+
+        <div class="card">
+            <span class="stat-big">0ms</span>
+            <h3>Cognitive Overlays</h3>
+            <p>> Our websocket architecture ensures that "Tip Alerts" trigger the millisecond a transaction clears, maximizing viewer engagement and dopamine loops.</p>
+        </div>
+
+        <div class="card" style="border-color: var(--neon-magenta); background: linear-gradient(180deg, rgba(255,0,234,0.05) 0%, rgba(5,8,20,0.85) 100%);">
+            <span class="stat-big" style="color: var(--neon-magenta); font-size: 42px; text-shadow: 0 0 15px rgba(255, 0, 234, 0.4);">PRO</span>
+            <h3>Enterprise Solutions</h3>
+            <p>> Scale your brand identity with Custom-Made Systems. We engineer custom overlay suites, exclusive stats widgets, and tailored alert mechanics. <a href="/contact" style="color: var(--neon-magenta); text-decoration: none; border-bottom: 1px solid var(--neon-magenta);">Contact Command</a> to design your signature identity.</p>
+        </div>
+    </div>
+
+    <div class="cta-section">
+        <h2 style="font-size:42px; font-weight: 700; margin-bottom:15px; color:#fff; text-transform:uppercase;">Ready for Uplink?</h2>
+        <p style="color:#8fa1d0; font-family:'Share Tech Mono', monospace; margin-bottom:40px; font-size: 16px;">> Join the new standard for professional creators.</p>
+        <a href="/login/" class="btn primary" style="padding: 20px 40px; font-size: 20px;">CLAIM YOUR DASHBOARD</a>
+    </div>
+
+    <div class="footer">
+        © 2026 XDTip Inc. All rights reserved. <br><br>
+        <a href="/privacy">PRIVACY POLICY</a> • 
+        <a href="/terms">TERMS OF SERVICE</a> • 
+        <a href="/refund-policy">REFUND POLICY</a> • 
+        <a href="/contact">COMM_LINK</a>
+    </div>
+
+</body>
+</html>

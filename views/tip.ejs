@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support the Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Send a Tip</h1>
+            <p class="text-gray-500 mt-2" id="user-status">Loading details...</p>
+            <h2 class="text-xl font-semibold text-blue-600 mt-1 hidden" id="user-name"></h2>
+        </div>
+
+        <form id="tipping-form" class="space-y-4 hidden">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Your Name</label>
+                <input type="text" id="sender-name" required placeholder="John Doe" 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Message (Optional)</label>
+                <textarea id="sender-message" rows="3" placeholder="Love your work!" 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Amount (₹)</label>
+                <input type="number" id="tip-amount" required min="10" placeholder="100" 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                <p class="text-xs text-gray-500 mt-1">Minimum amount is ₹10.</p>
+            </div>
+
+            <button type="submit" id="pay-btn" 
+                class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                Pay with Razorpay
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        // 1. Import Supabase
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+        // 2. Configuration (REPLACE THESE WITH YOUR ACTUAL KEYS)
+        const SUPABASE_URL = 'https://yohrquotbdmsxfeyxtqr.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM';
+        const RAZORPAY_KEY_ID = 'rzp_test_Say77hRQvGF2Kd';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 3. Get USERNAME from the URL (e.g., tip.html?username=xdfuYT)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUsername = urlParams.get('username');
+
+        // DOM Elements
+        const form = document.getElementById('tipping-form');
+        const userStatus = document.getElementById('user-status');
+        const userNameEl = document.getElementById('user-name');
+        const payBtn = document.getElementById('pay-btn');
+
+        // Global variable to store the actual UUID of the user once we find them
+        let actualUserId = null;
+
+        // 4. Fetch User Details by Username
+        async function loadUser() {
+            if (!urlUsername) {
+                userStatus.innerText = "Error: No username specified in URL.";
+                return;
+            }
+
+            // We need to fetch both the actual 'id' and the 'name'
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name')
+                .eq('username', urlUsername)
+                .single();
+
+            if (error || !data) {
+                userStatus.innerText = "Error: User not found. Please check the link.";
+                console.error(error);
+                return;
+            }
+
+            // Save the real ID for later when we save the tip
+            actualUserId = data.id;
+
+            // Display user and show form
+            userStatus.innerText = "Supporting:";
+            userNameEl.innerText = data.name;
+            userNameEl.classList.remove('hidden');
+            form.classList.remove('hidden');
+        }
+
+        // 5. Handle Form Submission & Razorpay Initialization
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const senderName = document.getElementById('sender-name').value;
+            const message = document.getElementById('sender-message').value;
+            const amount = parseInt(document.getElementById('tip-amount').value);
+
+            if (amount < 10) {
+                alert("Minimum tip amount is ₹10.");
+                return;
+            }
+
+            payBtn.innerText = "Processing...";
+            payBtn.disabled = true;
+
+            try {
+                // REMINDER: Fetch your Razorpay order_id securely from your backend here!
+                const dummyOrderId = "order_XXXXXX"; 
+
+                // Razorpay configuration
+                const options = {
+                    key: RAZORPAY_KEY_ID, 
+                    amount: amount * 100, // Amount is in paise
+                    currency: "INR",
+                    name: "Support",
+                    description: `Tip for ${userNameEl.innerText}`,
+                    // order_id: dummyOrderId, <-- UNCOMMENT AND PASS BACKEND ORDER ID HERE
+                    handler: async function (response) {
+                        const paymentId = response.razorpay_payment_id;
+                        
+                        // 6. Save tip details using the ACTUAL user ID we fetched earlier
+                        const { error } = await supabase
+                            .from('tips')
+                            .insert([
+                                {
+                                    user_id: actualUserId, 
+                                    sender_name: senderName,
+                                    message: message,
+                                    amount: amount,
+                                    payment_id: paymentId
+                                }
+                            ]);
+
+                        if (error) {
+                            console.error("Supabase Error:", error);
+                            alert("Payment successful, but failed to record tip. Please contact support.");
+                        } else {
+                            alert(`Success! Thank you ${senderName} for your tip of ₹${amount}.`);
+                            form.reset();
+                        }
+                        
+                        payBtn.innerText = "Pay with Razorpay";
+                        payBtn.disabled = false;
+                    },
+                    prefill: {
+                        name: senderName,
+                    },
+                    theme: {
+                        color: "#2563EB"
+                    }
+                };
+
+                const rzp1 = new Razorpay(options);
+                
+                rzp1.on('payment.failed', function (response){
+                    alert("Payment failed! Reason: " + response.error.description);
+                    payBtn.innerText = "Pay with Razorpay";
+                    payBtn.disabled = false;
+                });
+
+                rzp1.open();
+
+            } catch (err) {
+                console.error(err);
+                alert("Something went wrong. Please try again.");
+                payBtn.innerText = "Pay with Razorpay";
+                payBtn.disabled = false;
+            }
+        });
+
+        // Initialize Page
+        loadUser();
+    </script>
+</body>
+</html>

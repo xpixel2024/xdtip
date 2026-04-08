@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        // URL Cleaner Script
+        if (window.location.pathname.endsWith(".html")) {
+            var clean = window.location.pathname.replace(".html", "");
+            window.history.replaceState(null, "", clean);
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="XDTIP Privacy Policy. Learn how we protect creator data, secure UPI transactions, and ensure strict confidentiality for the Indian streaming community.">
+    <meta name="keywords" content="XDTIP Privacy Policy, Data Protection, Creator Security, UPI Transaction Privacy, GDPR Compliance India">
+    <meta name="robots" content="index, follow">
+    
+    <title>XDTip | Encrypted Policy Archive</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+          --neon-cyan: #00f3ff;
+          --neon-magenta: #ff00ea;
+          --bg-dark: #03040b;
+          --panel-bg: rgba(5, 8, 20, 0.85);
+          --grid-color: rgba(0, 243, 255, 0.05);
+        }
+
+        body {
+          margin: 0;
+          font-family: 'Rajdhani', sans-serif;
+          background-color: var(--bg-dark);
+          color: #c8d3f5;
+          overflow-x: hidden;
+          line-height: 1.6;
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+        }
+
+        /* CRT Scanlines and Grid Background */
+        .bgfx {
+          position: fixed;
+          top: 0; left: 0; width: 100%; height: 100%;
+          z-index: -1;
+          background-image: 
+            linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+          background-size: 40px 40px;
+        }
+
+        .bgfx::after {
+          content: "";
+          position: absolute;
+          top: 0; left: 0; width: 100%; height: 100%;
+          background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                      linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+          background-size: 100% 4px, 3px 100%;
+          pointer-events: none;
+        }
+
+        /* TOP NAV */
+        .nav {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 40px;
+          background: rgba(0, 0, 0, 0.9);
+          border-bottom: 2px solid var(--neon-cyan);
+          box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+          height: 70px;
+          position: sticky;
+          top: 0;
+          z-index: 1000;
+        }
+
+        .nav-brand {
+          font-size: 26px;
+          font-weight: 700;
+          letter-spacing: 2px;
+          color: var(--neon-cyan);
+          text-shadow: 0 0 8px var(--neon-cyan);
+          display: flex;
+          align-items: center;
+          text-decoration: none;
+        }
+
+        .nav-brand img {
+          height: 35px;
+          margin-right: 15px;
+          filter: drop-shadow(0 0 5px var(--neon-cyan));
+        }
+
+        .nav-links {
+          display: flex;
+          height: 100%;
+        }
+
+        .nav-links a {
+          display: flex;
+          align-items: center;
+          padding: 0 25px;
+          color: #7b8ebd;
+          text-decoration: none;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 15px;
+          text-transform: uppercase;
+          transition: 0.3s;
+          border-bottom: 2px solid transparent;
+        }
+
+        .nav-links a:hover {
+          color: var(--neon-cyan);
+          background: rgba(0, 243, 255, 0.05);
+          border-bottom: 2px solid var(--neon-cyan);
+          text-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* BUTTONS */
+        .btn {
+          display: inline-block;
+          padding: 10px 20px;
+          border: none;
+          cursor: pointer;
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 700;
+          font-size: 16px;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          text-decoration: none;
+          position: relative;
+          overflow: hidden;
+          transition: 0.3s;
+          clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .primary {
+          background: rgba(0, 243, 255, 0.1);
+          color: var(--neon-cyan);
+          border: 1px solid var(--neon-cyan);
+          box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.3);
+        }
+
+        .primary:hover {
+          background: var(--neon-cyan);
+          color: #000;
+          box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        /* CONTENT CONTAINER */
+        .legal-container {
+          max-width: 900px;
+          margin: 60px auto;
+          padding: 50px 60px;
+          background: var(--panel-bg);
+          border: 1px solid rgba(0, 243, 255, 0.2);
+          backdrop-filter: blur(10px);
+          position: relative;
+          box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.05);
+          flex: 1;
+        }
+
+        /* Sci-fi corners */
+        .legal-container::before, .legal-container::after {
+          content: ''; position: absolute; width: 30px; height: 30px; border: 2px solid var(--neon-cyan);
+        }
+        .legal-container::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .legal-container::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+        .eyebrow {
+          color: var(--neon-cyan);
+          font-family: 'Share Tech Mono', monospace;
+          font-weight: 700;
+          letter-spacing: 3px;
+          font-size: 14px;
+          text-transform: uppercase;
+          margin-bottom: 15px;
+          display: inline-block;
+          border: 1px solid rgba(0, 243, 255, 0.3);
+          padding: 5px 15px;
+          background: rgba(0, 243, 255, 0.05);
+        }
+
+        h1 {
+          font-size: 48px;
+          font-weight: 700;
+          margin-top: 0;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+          color: #fff;
+          text-shadow: 0 0 15px rgba(255,255,255,0.2);
+          letter-spacing: 2px;
+        }
+
+        .last-updated {
+          color: var(--neon-magenta);
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 14px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 40px;
+          display: block;
+        }
+
+        h2 {
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 22px;
+          color: var(--neon-cyan);
+          margin-top: 50px;
+          margin-bottom: 20px;
+          border-left: 4px solid var(--neon-cyan);
+          padding-left: 15px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          background: linear-gradient(90deg, rgba(0, 243, 255, 0.1) 0%, transparent 100%);
+          padding-top: 5px;
+          padding-bottom: 5px;
+        }
+
+        p {
+          color: #c8d3f5;
+          font-size: 18px;
+          margin-bottom: 20px;
+        }
+
+        ul { 
+          list-style: none; 
+          padding: 0; 
+        }
+        
+        ul li {
+          position: relative;
+          padding-left: 25px;
+          margin-bottom: 15px;
+          color: #8fa1d0;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 15px;
+        }
+        
+        ul li::before {
+          content: ">";
+          color: var(--neon-cyan);
+          position: absolute;
+          left: 0;
+          font-weight: bold;
+        }
+
+        ul li strong {
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+            letter-spacing: 1px;
+        }
+
+        /* ALERT BOX (Replaces highlight box) */
+        .highlight-box {
+          background: rgba(255, 0, 234, 0.05);
+          border: 1px solid var(--neon-magenta);
+          padding: 25px;
+          margin: 40px 0;
+          position: relative;
+          box-shadow: inset 0 0 15px rgba(255, 0, 234, 0.1);
+        }
+
+        .highlight-box::before {
+            content: 'SYSTEM_ALERT';
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: var(--bg-dark);
+            padding: 0 10px;
+            color: var(--neon-magenta);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+        }
+
+        .highlight-box strong {
+            color: var(--neon-magenta);
+            text-shadow: 0 0 5px rgba(255,0,234,0.4);
+            font-size: 20px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .highlight-box u {
+            text-decoration-color: var(--neon-magenta);
+            text-underline-offset: 4px;
+        }
+
+        /* FOOTER */
+        .footer {
+          text-align: center;
+          padding: 30px;
+          border-top: 1px solid rgba(0, 243, 255, 0.2);
+          background: rgba(0, 0, 0, 0.8);
+          color: #55678a;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 14px;
+          letter-spacing: 1px;
+          margin-top: auto;
+        }
+        
+        .footer a {
+          color: #55678a;
+          text-decoration: none;
+          transition: 0.3s;
+          margin: 0 10px;
+        }
+
+        .footer a:hover {
+          color: var(--neon-cyan);
+          text-shadow: 0 0 8px var(--neon-cyan);
+        }
+
+        /* MOBILE OPTIMIZATION */
+        @media (max-width: 768px) {
+            .legal-container { padding: 30px 20px; margin: 30px 10px; }
+            h1 { font-size: 36px; }
+            .nav-links { display: none; } /* Simplified mobile nav */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bgfx"></div>
+
+    <div class="nav">
+        <a href="https://xdtip.in/" class="nav-brand">
+            <img src="images/logo.png" alt="XDTIP">
+            XD_TIP // SYS.DOCS
+        </a>
+        <div class="nav-links">
+            <a href="https://xdtip.in">HOME</a>
+        </div>
+        <div>
+            <a href="/register" class="btn primary">INITIATE_REGISTRATION</a>
+        </div>
+    </div>
+
+    <div class="legal-container">
+        <span class="eyebrow">[ ENCRYPTED_RECORD ]</span>
+        <h1>Privacy Policy</h1>
+        <span class="last-updated">> LAST_MODIFIED: JAN 18, 2026</span>
+
+        <p>At <strong>XDTIP</strong> (accessible via https://xdtip.in), we recognize that trust is the currency of the creator economy. We are steadfastly committed to safeguarding the digital sovereignty and personal information of our creators and their community of supporters.</p>
+        
+        <p>This Privacy Policy outlines the technical and procedural protocols we employ to collect, utilize, and protect your data.</p>
+
+        <h2>1. Information Architecture & Data Collection</h2>
+        <p>To provide our monetization infrastructure, we collect specific data points categorized as follows:</p>
+        <ul>
+            <li><strong>Identity Verification Data:</strong> Full Name, Email Address, and Channel Identity (required for account authentication and security).</li>
+            <li><strong>Financial Routing Data:</strong> Unified Payments Interface (UPI) IDs. Note: This data is strictly utilized for the processing of payouts.</li>
+            <li><strong>Transactional Metadata:</strong> Payment timestamps, gross amounts, and supporter messages required for the generation of "Tip Alerts."</li>
+        </ul>
+        
+        <div class="highlight-box">
+            <strong>Non-Storage Policy:</strong> 
+            <span style="color: #c8d3f5; font-family: 'Share Tech Mono', monospace;">XDTIP does <u>not</u> store sensitive payment instrument details (Credit Card/Debit Card numbers) on our servers. All processing is offloaded to PCI-DSS compliant gateways (e.g., Razorpay).</span>
+        </div>
+
+        <h2>2. Operational Use of Data</h2>
+        <p>We leverage your data exclusively for the following operational objectives:</p>
+        <ul>
+            <li><strong>Service Delivery:</strong> To facilitate the instant settlement of funds from supporter to creator via UPI rails.</li>
+            <li><strong>Real-Time Overlay Generation:</strong> To trigger visual and auditory alerts (TTS) on your livestream via our WebSocket architecture.</li>
+            <li><strong>Fraud Detection:</strong> To monitor transactional velocity and prevent chargeback fraud or money laundering attempts.</li>
+            <li><strong>Compliance:</strong> To adhere to Indian financial regulations and digital tax reporting requirements.</li>
+        </ul>
+
+        <h2>3. Data Sovereignty & Sharing Protocol</h2>
+        <p>We adhere to a strict "Need-to-Know" sharing policy. XDTIP does not sell, rent, or trade your personal data to advertisers or data brokers.</p>
+        <p>Data is shared strictly with:</p>
+        <ul>
+            <li><strong>Payment Processors:</strong> (e.g., Razorpay) solely to execute financial transactions.</li>
+            <li><strong>Legal Authorities:</strong> Only when compelled by a valid court order or to investigate illegal activity within the platform.</li>
+        </ul>
+
+        <h2>4. Security Infrastructure</h2>
+        <p>We employ enterprise-grade security measures to protect your data in transit and at rest:</p>
+        <ul>
+            <li><strong>SSL Encryption:</strong> All data transmission between your browser and our servers is encrypted via Secure Socket Layer (SSL) technology.</li>
+            <li><strong>Database Isolation:</strong> User financial data is isolated from public-facing application logic.</li>
+            <li><strong>Access Control:</strong> Internal access to user data is restricted to authorized personnel with multi-factor authentication.</li>
+        </ul>
+
+        <h2>5. Your Rights</h2>
+        <p>As a user of the XDTIP platform, you retain the right to request the deletion of your account and associated data from our servers. To initiate a data erasure request, please contact our Data Protection Officer at <strong>connect@xdfun.in</strong>.</p>
+    </div>
+
+    <div class="footer">
+        © 2026 XDTip Inc. All rights reserved. <br><br>
+        <a href="/privacy">PRIVACY POLICY</a> • 
+        <a href="/terms">TERMS OF SERVICE</a> • 
+        <a href="/refund-policy">REFUND POLICY</a> • 
+        <a href="/contact">COMM_LINK</a>
+    </div>
+
+</body>
+</html>

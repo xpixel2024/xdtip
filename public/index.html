@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>XDTip | Streamer Monetization Protocol</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --neon-cyan: #00f3ff;
+  --neon-magenta: #ff00ea;
+  --bg-dark: #03040b;
+  --panel-bg: rgba(5, 8, 20, 0.85);
+  --grid-color: rgba(0, 243, 255, 0.05);
+}
+
+body {
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  background-color: var(--bg-dark);
+  color: #c8d3f5;
+  overflow-x: hidden;
+}
+
+/* CRT Scanlines and Grid Background */
+.bgfx {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: -1;
+  background-image: 
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.bgfx::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+}
+
+/* NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.05) 0%, transparent 100%);
+  border-bottom: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  backdrop-filter: blur(5px);
+}
+
+.logo {
+  color: var(--neon-cyan);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.nav a {
+  color: #7b8ebd;
+  margin-left: 30px;
+  text-decoration: none;
+  font-size: 15px;
+  text-transform: uppercase;
+  transition: 0.3s;
+}
+
+.nav a:hover {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+/* LOGIN BUTTON */
+.login-btn {
+  margin-left: 30px;
+  padding: 8px 20px;
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  transition: 0.3s;
+  box-shadow: inset 0 0 5px rgba(0, 243, 255, 0.2);
+}
+
+.login-btn:hover {
+  background: var(--neon-cyan);
+  color: #000 !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 15px var(--neon-cyan);
+}
+
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 140px 20px 100px;
+  position: relative;
+}
+
+.hero h1 {
+  font-size: 72px;
+  line-height: 1.1;
+  margin-bottom: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.hero .highlight {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px var(--neon-cyan);
+}
+
+.hero .fee {
+  color: var(--neon-magenta);
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: bold;
+  margin-top: 20px;
+  font-size: 20px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 0, 234, 0.5);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; text-shadow: 0 0 20px var(--neon-magenta); }
+  100% { opacity: 0.8; }
+}
+
+.hero p {
+  color: #8fa1d0;
+  margin-top: 25px;
+  font-size: 22px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* BUTTONS */
+.buttons {
+  margin-top: 45px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.btn {
+  padding: 15px 35px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  position: relative;
+  overflow: hidden;
+  transition: 0.3s;
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+}
+
+/* PRIMARY BUTTON */
+.primary {
+  background: rgba(0, 243, 255, 0.1);
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+.primary:hover {
+  background: var(--neon-cyan);
+  color: #000;
+  box-shadow: 0 0 25px var(--neon-cyan);
+}
+
+/* SECONDARY BUTTON */
+.secondary {
+  background: transparent;
+  border: 1px solid var(--neon-magenta);
+  color: var(--neon-magenta);
+  box-shadow: inset 0 0 10px rgba(255, 0, 234, 0.1);
+}
+
+.secondary:hover {
+  background: var(--neon-magenta);
+  color: #000;
+  box-shadow: 0 0 25px var(--neon-magenta);
+}
+
+/* FEATURES */
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px 20px 100px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.card {
+  width: 300px;
+  background: var(--panel-bg);
+  border: 1px solid rgba(0, 243, 255, 0.15);
+  padding: 35px 25px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  transition: 0.3s;
+}
+
+/* Sci-fi corner brackets for cards */
+.card::before, .card::after {
+  content: ''; 
+  position: absolute; 
+  width: 20px; 
+  height: 20px; 
+  border: 2px solid var(--neon-cyan); 
+  transition: 0.3s;
+}
+.card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+.card:hover {
+  border-color: rgba(0, 243, 255, 0.5);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 243, 255, 0.1);
+}
+
+.card:hover::before, .card:hover::after { 
+  width: 40px; 
+  height: 40px; 
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #fff;
+  font-size: 24px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.card p {
+  color: #8fa1d0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  padding: 30px;
+  border-top: 1px solid rgba(0, 243, 255, 0.2);
+  background: rgba(0, 0, 0, 0.8);
+  color: #55678a;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+<div class="bgfx"></div>
+
+<div class="navbar">
+  <div class="logo">XDTIP // SYS.CORE</div>
+  <div class="nav">
+    <a href="index.html">Home</a>
+    <a href="tip.html">Tip</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="learn.html">Learn</a>
+    <a href="contact.html">Contact</a>
+    <a href="login.html" class="login-btn">LOGIN_AUTH</a>
+  </div>
+</div>
+
+<div class="hero">
+  <h1>
+    Monetize Your Stream<br>
+    <span class="highlight">Instantly.</span>
+  </h1>
+
+  <div class="fee">
+    [ SYSTEM NOTE: ONLY 6% PLATFORM FEES ]
+  </div>
+
+  <p>
+    The simplest protocol for creators to accept local payments<br>
+    and trigger real-time telemetry alerts.
+  </p>
+
+  <div class="buttons">
+    <a href="learn.html" style="text-decoration:none;">
+      <button class="btn secondary">ACCESS DATA</button>
+    </a>
+
+    <a href="login.html" style="text-decoration:none;">
+      <button class="btn primary">INITIALIZE UPLINK</button>
+    </a>
+  </div>
+</div>
+
+<div class="features">
+  <div class="card">
+    <h3 style="color:var(--neon-cyan);">⚡ Real-time Alerts</h3>
+    <p>Instant OBS overlay transmissions to visually display every incoming tip to your viewers.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="color:var(--neon-cyan);">💸 Instant Payments</h3>
+    <p>Seamless integration to accept localized currency transfers with zero friction.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="color:var(--neon-cyan);">📊 Creator HUD</h3>
+    <p>Track telemetry, analytics, and execute payload withdrawals directly from your command center.</p>
+  </div>
+</div>
+
+<div class="footer">
+  © 2026 XDTip • 
+  <a href="terms.html">TERMS</a> • 
+  <a href="privacy.html">PRIVACY</a> • 
+  <a href="refund.html">REFUND POLICY</a>
+</div>
+
+</body>
+</html>

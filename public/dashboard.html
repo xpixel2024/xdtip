@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>XDTip HUD | Commander</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --neon-cyan: #00f3ff;
+  --neon-magenta: #ff00ea;
+  --bg-dark: #03040b;
+  --panel-bg: rgba(5, 8, 20, 0.85);
+  --grid-color: rgba(0, 243, 255, 0.05);
+}
+
+body {
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  background-color: var(--bg-dark);
+  color: #c8d3f5;
+  overflow-x: hidden;
+}
+
+/* CRT Scanlines and Grid Background */
+.bgfx {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: -1;
+  background-image: 
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.bgfx::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+}
+
+/* TOP NAV */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 40px;
+  background: rgba(0, 0, 0, 0.9);
+  border-bottom: 2px solid var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  height: 70px;
+}
+
+.nav-brand {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.nav-links {
+  display: flex;
+  height: 100%;
+}
+
+.nav-links a {
+  display: flex;
+  align-items: center;
+  padding: 0 25px;
+  color: #7b8ebd;
+  text-decoration: none;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 15px;
+  text-transform: uppercase;
+  transition: 0.3s;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  color: var(--neon-cyan);
+  background: rgba(0, 243, 255, 0.05);
+  border-bottom: 2px solid var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+.nav .btn {
+  margin-top: 0; /* Reset margin for nav bar button */
+}
+
+/* PROFILE */
+.profile {
+  text-align: center;
+  padding: 40px;
+  position: relative;
+}
+
+.avatar {
+  width: 130px; 
+  height: 130px;
+  margin: auto;
+  background: #111;
+  background-size: cover;
+  background-position: center;
+  /* Hexagon Shape */
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  border: none;
+  position: relative;
+  z-index: 2;
+}
+
+/* Glowing ring behind avatar */
+.avatar-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--neon-cyan);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+.username {
+  font-size: 32px;
+  font-weight: 700;
+  margin-top: 15px;
+  color: #fff;
+  text-shadow: 0 0 10px var(--neon-cyan);
+  letter-spacing: 2px;
+}
+
+/* INPUTS */
+input {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid #333;
+  border-left: 3px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  font-family: 'Share Tech Mono', monospace;
+  margin-top: 10px;
+  border-radius: 0;
+  outline: none;
+  transition: 0.3s;
+}
+input:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+input[type="file"] {
+  font-family: 'Rajdhani', sans-serif;
+  color: #fff;
+}
+.file-label {
+  display: block;
+  text-align: left;
+  margin-left: 5%;
+  margin-top: 10px;
+  margin-bottom: -5px;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--neon-magenta);
+  font-size: 12px;
+}
+
+/* BUTTONS */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+  transition: 0.2s;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.green { 
+  background: transparent;
+  color: var(--neon-cyan); 
+  border: 1px solid var(--neon-cyan);
+  box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2);
+}
+.green:hover {
+  background: var(--neon-cyan);
+  color: #000;
+  box-shadow: 0 0 15px var(--neon-cyan);
+}
+
+.red { 
+  background: transparent;
+  color: var(--neon-magenta);
+  border: 1px solid var(--neon-magenta);
+  box-shadow: inset 0 0 10px rgba(255, 0, 234, 0.2);
+}
+.red:hover {
+  background: var(--neon-magenta);
+  color: #000;
+  box-shadow: 0 0 15px var(--neon-magenta);
+}
+
+/* LAYOUT & CARDS */
+.section {
+  max-width: 1100px;
+  margin: 40px auto;
+}
+
+.card {
+  background: var(--panel-bg);
+  border: 1px solid rgba(0, 243, 255, 0.15);
+  padding: 25px;
+  backdrop-filter: blur(10px);
+  position: relative;
+}
+
+/* Sci-fi corner brackets for cards */
+.card::before, .card::after {
+  content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--neon-cyan); transition: 0.3s;
+}
+.card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+.card:hover::before, .card:hover::after { width: 30px; height: 30px; }
+
+h3 {
+  margin-top: 0;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 10px;
+  text-transform: uppercase;
+}
+
+h2 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 38px;
+  color: var(--neon-cyan);
+  margin: 10px 0;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+}
+
+.row {
+  display: flex;
+  gap: 25px;
+}
+.col { flex: 1; }
+
+/* LINK BOX */
+.linkbox { display: flex; }
+.linkbox input { flex: 1; border-right: none; }
+.linkbox button { margin-left: 0; border-radius: 0; clip-path: none; }
+
+/* TABLE */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+}
+td, th {
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+  text-align: left;
+}
+th { 
+  color: var(--neon-magenta); 
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+tr:hover { background: rgba(0, 243, 255, 0.05); }
+
+/* LOADING ANIMATION */
+.loading {
+  animation: pulse-glow 1.5s infinite;
+}
+@keyframes pulse-glow {
+  0% { opacity: 0.5; text-shadow: none; }
+  50% { opacity: 1; text-shadow: 0 0 10px var(--neon-cyan); }
+  100% { opacity: 0.5; text-shadow: none; }
+}
+
+/* POPUP */
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 5, 0.9);
+  backdrop-filter: blur(5px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+.popup-box {
+  background: var(--panel-bg);
+  border: 1px solid var(--neon-cyan);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.2);
+  padding: 40px;
+  width: 320px;
+  text-align: center;
+  position: relative;
+}
+.popup-box::before {
+  content: 'SYSTEM OVERRIDE';
+  position: absolute;
+  top: -10px; left: 20px;
+  background: var(--bg-dark);
+  padding: 0 10px;
+  font-size: 12px;
+  color: var(--neon-cyan);
+}
+.popup-box input { width: 90%; margin-bottom: 15px; }
+
+/* FOOTER */
+.footer {
+  text-align: center;
+  padding: 30px;
+  border-top: 1px solid rgba(0, 243, 255, 0.2);
+  background: rgba(0, 0, 0, 0.8);
+  color: #55678a;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 1px;
+  margin-top: 40px;
+}
+.footer a {
+  color: #55678a;
+  text-decoration: none;
+  transition: 0.3s;
+}
+
+.footer a:hover {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+</style>
+</head>
+<body>
+
+<div class="bgfx"></div>
+
+<div class="nav">
+  <div class="nav-brand">XD_TIP // SYS</div>
+  
+  <div class="nav-links">
+    <a href="index.html">HOME</a>
+    <a href="dashboard.html" class="active">DASHBOARD</a>
+    <a href="learn.html">LEARN</a>
+    <a href="contact.html">CONTACT US</a>
+  </div>
+
+  <div class="nav-actions">
+    <button class="btn red" onclick="logout()">[ TERMINATE ]</button>
+  </div>
+</div>
+
+<div class="profile">
+  <div class="avatar-wrapper">
+    <div class="avatar" id="avatar"></div>
+  </div>
+  <div class="username loading" id="username">INITIALIZING...</div>
+
+  <input id="nameInput" placeholder="> Enter Designation"><br>
+  <input type="file" id="logoUpload" style="margin-top:15px; margin-bottom: 15px;"><br>
+
+  <button class="btn green" onclick="saveProfile()">UPLOAD DATA</button>
+</div>
+
+<div class="section row">
+
+  <div class="card col">
+    <h3>CREDITS</h3>
+    <h2 id="balance" class="loading">₹--</h2>
+  </div>
+
+  <div class="card col" id="kycSection">
+    <h3>SECURITY CLEARANCE (KYC)</h3>
+    <button class="btn green" onclick="openKyc()">INITIATE KYC</button>
+    <p id="kycStatus" class="loading" style="margin-top:15px; font-family:'Share Tech Mono';">STATUS: UNKNOWN</p>
+  </div>
+
+  <div class="card col" id="upiSection" style="display:none;">
+    <h3>LINKED NODE (UPI)</h3>
+    <p id="upi" style="font-family:'Share Tech Mono'; font-size: 20px; color: var(--neon-cyan);"></p>
+  </div>
+
+</div>
+
+<div class="section">
+  <h3>BROADCAST PROTOCOLS</h3>
+
+  <div class="row">
+    <div class="card col">
+      <h3>ALERT HUB</h3>
+      <div class="linkbox">
+        <input id="alertLink" class="loading" readonly>
+        <button class="btn green" onclick="copy('alertLink')">COPY</button>
+      </div>
+    </div>
+
+    <div class="card col">
+      <h3>TELEMETRY (STATS)</h3>
+      <div class="linkbox">
+        <input id="statsLink" class="loading" readonly>
+        <button class="btn green" onclick="copy('statsLink')">COPY</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section row">
+
+  <div class="card col">
+    <h3>PUBLIC ENDPOINT (TIP PAGE)</h3>
+    <div class="linkbox">
+      <input id="tipLink" class="loading" readonly>
+      <button class="btn green" onclick="copy('tipLink')">COPY</button>
+    </div>
+  </div>
+
+  <div class="card col">
+    <h3>DIAGNOSTICS</h3>
+    <button class="btn green">TEST ALERT</button>
+    <button class="btn red">REPLAY LAST</button>
+  </div>
+
+</div>
+
+<div class="section row">
+
+  <div class="card col">
+    <h3>INCOMING TRANSMISSIONS</h3>
+    <table>
+      <tr><th>SOURCE</th><th>PAYLOAD</th><th>CREDITS</th><th>TIMESTAMP</th></tr>
+    </table>
+  </div>
+
+  <div class="card col">
+    <h3>OUTGOING LOGS</h3>
+    <table>
+      <tr><th>TIMESTAMP</th><th>CREDITS</th><th>TX_HASH</th></tr>
+    </table>
+  </div>
+
+</div>
+
+<div class="popup" id="kycPopup">
+  <div class="popup-box">
+    <h3 style="color:var(--neon-cyan);">KYC UPLINK</h3>
+    <input id="fullName" placeholder="> Legal Designation"><br>
+    <input id="upiInput" placeholder="> UPI Identifier"><br>
+    
+    <span class="file-label">> ATTACH PAN DOC</span>
+    <input type="file" id="panUpload" accept="image/*,application/pdf"><br>
+    
+    <div style="margin-top: 15px;">
+      <button class="btn green" onclick="submitKyc()">TRANSMIT</button>
+      <button class="btn red" onclick="closeKyc()">ABORT</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const client = window.supabase.createClient(
+  "https://yohrquotbdmsxfeyxtqr.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+);
+
+let userId="";
+
+async function loadUser(){
+  const {data}=await client.auth.getUser();
+
+  if(!data.user){
+    location.href="login.html";
+    return;
+  }
+
+  userId=data.user.id;
+
+  setVal("alertLink",`https://xdtip.in/alert/${userId}`);
+  setVal("statsLink",`https://xdtip.in/stats/${userId}`);
+
+  try{
+    const {data:profile}=await client
+      .from("users")
+      .select("*")
+      .eq("id",userId)
+      .single();
+
+    if(profile){
+
+      if(profile.username){
+        setText("username",profile.username);
+        setVal("tipLink",`https://xdtip.in/${profile.username}`);
+      } else {
+        setText("username","GUEST_ENTITY");
+      }
+
+      if(profile.logo){
+        document.getElementById("avatar").style.backgroundImage=`url(${profile.logo})`;
+      }
+
+      setText("balance","₹"+(profile.balance||0));
+
+      // Allow for both boolean true and string "true"
+      if (profile.kyc === true || profile.kyc === "true") {
+        document.getElementById("kycSection").style.display = "none";
+        document.getElementById("upiSection").style.display = "block";
+        
+        // Fallback in case upi is null or undefined
+        document.getElementById("upi").innerText = profile.upi || "NO UPI LINKED"; 
+      }
+      else if(profile.kyc==="pending"){
+        setText("kycStatus","VERIFICATION IN PROGRESS...");
+      }
+      else{
+        setText("kycStatus","AWAITING CLEARANCE");
+      }
+    }
+
+  }catch(e){
+    console.log("DB_OFFLINE");
+  }
+}
+
+loadUser();
+
+// SAVE PROFILE + LOGO
+async function saveProfile(){
+
+  const username=document.getElementById("nameInput").value;
+  const file=document.getElementById("logoUpload").files[0];
+
+  let logoUrl=null;
+
+  if(file){
+    const fileName=userId+"_"+Date.now();
+
+    const {error}=await client.storage
+      .from("logos")
+      .upload(fileName,file);
+
+    if(!error){
+      logoUrl=client.storage
+        .from("logos")
+        .getPublicUrl(fileName).data.publicUrl;
+
+      document.getElementById("avatar").style.backgroundImage=`url(${logoUrl})`;
+    }
+  }
+
+  await client.from("users").upsert({
+    id:userId,
+    username:username,
+    logo:logoUrl
+  });
+
+  setText("username",username);
+  setVal("tipLink",`https://xdtip.in/${username}`);
+}
+
+// HELPERS
+function setText(id,text){
+  const el=document.getElementById(id);
+  el.innerText=text;
+  el.classList.remove("loading");
+}
+function setVal(id,text){
+  const el=document.getElementById(id);
+  el.value=text;
+  el.classList.remove("loading");
+}
+
+// KYC
+function openKyc(){document.getElementById("kycPopup").style.display="flex";}
+function closeKyc(){document.getElementById("kycPopup").style.display="none";}
+
+async function submitKyc(){
+  // Prevent double submissions while uploading
+  const btn = document.querySelector("#kycPopup .btn.green");
+  const originalText = btn.innerText;
+  btn.innerText = "UPLOADING...";
+  btn.disabled = true;
+
+  const name=document.getElementById("fullName").value;
+  const upi=document.getElementById("upiInput").value;
+  const panFile=document.getElementById("panUpload").files[0];
+
+  let panUrl = null;
+
+  if(panFile){
+    const fileName="pan_"+userId+"_"+Date.now();
+    
+    // Ensure you create a bucket named 'kyc_docs' in your Supabase project!
+    const {error} = await client.storage
+      .from("kyc_docs") 
+      .upload(fileName, panFile);
+
+    if(!error){
+      panUrl = client.storage
+        .from("kyc_docs")
+        .getPublicUrl(fileName).data.publicUrl;
+    } else {
+      console.error("PAN Upload Error:", error);
+      alert("UPLOAD FAILED: Verify storage bucket [kyc_docs] permissions.");
+      btn.innerText = originalText;
+      btn.disabled = false;
+      return;
+    }
+  }
+
+  await client.from("users").upsert({
+    id:userId,
+    name:name,
+    upi:upi,
+    pan_url:panUrl, // Added this payload
+    kyc:"pending"
+  });
+
+  setText("kycStatus","VERIFICATION IN PROGRESS...");
+  
+  // Reset Button
+  btn.innerText = originalText;
+  btn.disabled = false;
+  closeKyc();
+}
+
+// COPY
+function copy(id){
+  const el=document.getElementById(id);
+  el.select();
+  document.execCommand("copy");
+}
+
+// LOGOUT
+async function logout(){
+  await client.auth.signOut();
+  location.href="login.html";
+}
+</script>
+
+<div class="footer">
+  © 2026 XDTip • 
+  <a href="terms.html">TERMS</a> • 
+  <a href="privacy.html">PRIVACY</a> • 
+  <a href="refund.html">REFUND POLICY</a>
+</div>
+
+</body>
+</html>
