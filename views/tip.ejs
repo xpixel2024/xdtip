@@ -269,11 +269,12 @@
                 <div class="creator-handle">> ID: @<%= user.username %></div>
             </div>
 
-            <form id="payment-form">
-                <div class="form-group">
-                    <label>> DESIGNATION (NAME)</label>
-                    <input type="text" id="sender-name" required placeholder="YOUR NAME">
-                </div>
+            <form id="payment-form" class="space-y-5">
+    <button type="submit" id="pay-button" 
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl">
+        TRANSMIT CREDIT
+    </button>
+</form>
 
                 <div class="form-group">
                     <label>> TRANSMIT PAYLOAD (MESSAGE)</label>
@@ -297,78 +298,78 @@
     </div>
 
     <script>
-        const form = document.getElementById('payment-form');
-        const payBtn = document.getElementById('pay-button');
+    const form = document.getElementById('payment-form');
+    const payBtn = document.getElementById('pay-button');
 
-        // These variables are injected by EJS from the server
-        const creatorId = "<%= user.id %>";
-        const creatorName = "<%= user.name %>";
+    // These variables MUST come from your EJS server
+    const creatorId = "<%= user.id %>";
+    const creatorName = "<%= user.name %>";
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    form.addEventListener('submit', async (e) => {
+        // 1. THIS PREVENTS THE PAGE FROM RELOADING
+        e.preventDefault();
 
-            const name = document.getElementById('sender-name').value;
-            const message = document.getElementById('sender-message').value;
-            const amount = document.getElementById('tip-amount').value;
+        const name = document.getElementById('sender-name').value;
+        const message = document.getElementById('sender-message').value;
+        const amount = document.getElementById('tip-amount').value;
 
-            if (amount < 10) {
-                alert("SYSTEM ERROR: Minimum transfer is ₹10.");
-                return;
-            }
+        // 2. BASIC VALIDATION
+        if (!amount || amount < 10) {
+            alert("Minimum amount is ₹10");
+            return;
+        }
 
-            payBtn.innerText = "INITIATING SECURE UPLINK...";
-            payBtn.disabled = true;
+        payBtn.innerText = "INITIALIZING...";
+        payBtn.disabled = true;
 
-            const options = {
-                "key": "rzp_test_Say77hRQvGF2Kd", // Replace with your actual Test/Live Key
-                "amount": amount * 100, // Amount in paise
-                "currency": "INR",
-                "name": "TRANSMISSION TO " + creatorName.toUpperCase(),
-                "description": "SUPPORT NODE ACTIVE",
-                handler
-                    try {
-                        const saveResponse = await fetch('/api/tip', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId: creatorId,
-                                name: name,
-                                message: message,
-                                amount: amount,
-                                payment_id: response.razorpay_payment_id
-                            })
-                        });
+        // 3. RAZORPAY CONFIGURATION
+        const options = {
+            "key": "rzp_test_Say77hRQvGF2Kd", // <--- MUST START WITH rzp_live_ or rzp_test_
+            "amount": parseInt(amount) * 100, 
+            "currency": "INR",
+            "name": "Tip for " + creatorName,
+            "handler": async function (response) {
+                // This code runs ONLY after payment success
+                try {
+                    const saveResponse = await fetch('/api/tip', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: creatorId,
+                            name: name,
+                            message: message,
+                            amount: amount,
+                            payment_id: response.razorpay_payment_id
+                        })
+                    });
 
-                        const result = await saveResponse.json();
-
-                        if (result.success) {
-                            alert("TRANSMISSION SUCCESSFUL! Credits transferred to " + creatorName);
-                            window.location.reload();
-                        } else {
-                            alert("WARNING: Funds transferred, but telemetry database sync failed.");
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        alert("NETWORK ERROR: Data sync failed.");
+                    const result = await saveResponse.json();
+                    if (result.success) {
+                        alert("CREDIT TRANSMITTED SUCCESSFULLY!");
+                        window.location.reload();
                     }
-                },
-                "prefill": {
-                    "name": name
-                },
-                "theme": {
-                    "color": "#00f3ff" // Matched to Sci-Fi Neon Cyan
-                },
-                "modal": {
-                    "ondismiss": function(){
-                        payBtn.innerText = "[ TRANSMIT CREDITS ]";
-                        payBtn.disabled = false;
-                    }
+                } catch (err) {
+                    alert("Payment success, but database error. Save this ID: " + response.razorpay_payment_id);
                 }
-            };
+            },
+            "modal": {
+                "ondismiss": function() {
+                    payBtn.innerText = "TRANSMIT CREDIT";
+                    payBtn.disabled = false;
+                }
+            }
+        };
 
+        try {
             const rzp = new Razorpay(options);
             rzp.open();
-        });
-    </script>
+        } catch (err) {
+            console.error("Razorpay fail:", err);
+            alert("Razorpay failed to load. Check your Key ID.");
+            payBtn.disabled = false;
+            payBtn.innerText = "TRANSMIT CREDIT";
+        }
+    });
+</script>
 </body>
 </html>
