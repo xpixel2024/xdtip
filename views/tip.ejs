@@ -18,17 +18,13 @@
         }
 
         body {
-          margin: 0;
-          font-family: 'Rajdhani', sans-serif;
-          background-color: var(--bg-dark);
-          color: #c8d3f5;
+          margin: 0; font-family: 'Rajdhani', sans-serif;
+          background-color: var(--bg-dark); color: #c8d3f5;
           overflow-x: hidden;
         }
 
         .bgfx {
-          position: fixed;
-          top: 0; left: 0; width: 100%; height: 100%;
-          z-index: -1;
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
           background-image: 
             linear-gradient(var(--grid-color) 1px, transparent 1px),
             linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
@@ -36,203 +32,48 @@
         }
 
         .bgfx::after {
-          content: "";
-          position: absolute;
-          top: 0; left: 0; width: 100%; height: 100%;
+          content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
           background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
                       linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-          background-size: 100% 4px, 3px 100%;
-          pointer-events: none;
+          background-size: 100% 4px, 3px 100%; pointer-events: none;
         }
 
-        .container {
-          display: flex;
-          min-height: 100vh;
-          justify-content: center;
-          align-items: center;
-          padding: 20px;
-        }
-
-        .card {
-          background: var(--panel-bg);
-          border: 1px solid rgba(0, 243, 255, 0.2);
-          box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
-          padding: 40px 30px;
-          width: 100%;
-          max-width: 420px;
-          backdrop-filter: blur(10px);
-          position: relative;
-        }
-
-        .card::before, .card::after {
-          content: ''; 
-          position: absolute; 
-          width: 20px; 
-          height: 20px; 
-          border: 2px solid var(--neon-cyan); 
-        }
+        .container { display: flex; min-height: 100vh; justify-content: center; align-items: center; padding: 20px; }
+        .card { background: var(--panel-bg); border: 1px solid rgba(0, 243, 255, 0.2); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1); padding: 40px 30px; width: 100%; max-width: 420px; backdrop-filter: blur(10px); position: relative; }
+        .card::before, .card::after { content: ''; position: absolute; width: 20px; height: 20px; border: 2px solid var(--neon-cyan); }
         .card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
         .card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
-        .sys-label {
-          position: absolute;
-          top: -12px;
-          left: 20px;
-          background: var(--bg-dark);
-          padding: 0 10px;
-          color: var(--neon-cyan);
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 12px;
-          letter-spacing: 1px;
-        }
-
-        .profile-header {
-          text-align: center;
-          margin-bottom: 30px;
-        }
+        .sys-label { position: absolute; top: -12px; left: 20px; background: var(--bg-dark); padding: 0 10px; color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1px; }
+        .profile-header { text-align: center; margin-bottom: 30px; }
 
         .avatar-wrapper {
-          position: relative;
-          width: 110px;
-          height: 110px;
-          margin: 0 auto 15px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: var(--neon-cyan);
+          position: relative; width: 110px; height: 110px; margin: 0 auto 15px;
+          display: flex; justify-content: center; align-items: center; background: var(--neon-cyan);
           clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
           box-shadow: 0 0 20px var(--neon-cyan);
         }
 
         .avatar {
-          width: 104px; 
-          height: 104px;
-          background: #111;
-          background-size: cover;
-          background-position: center;
+          width: 104px; height: 104px; background: #111; background-size: cover; background-position: center;
           clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
         }
 
-        .fallback-avatar {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 48px;
-          font-family: 'Share Tech Mono', monospace;
-          color: var(--neon-cyan);
-          font-weight: bold;
-        }
+        .creator-name { font-size: 28px; font-weight: 700; color: #fff; margin: 0; text-shadow: 0 0 10px var(--neon-cyan); text-transform: uppercase; }
+        .creator-handle { font-family: 'Share Tech Mono', monospace; color: #8fa1d0; font-size: 14px; margin-top: 5px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; color: var(--neon-magenta); font-family: 'Share Tech Mono', monospace; font-size: 12px; margin-bottom: 5px; }
 
-        .creator-name {
-          font-size: 28px;
-          font-weight: 700;
-          color: #fff;
-          margin: 0;
-          letter-spacing: 1px;
-          text-shadow: 0 0 10px var(--neon-cyan);
-          text-transform: uppercase;
-        }
-
-        .creator-handle {
-          font-family: 'Share Tech Mono', monospace;
-          color: #8fa1d0;
-          font-size: 14px;
-          margin-top: 5px;
-        }
-
-        .form-group {
-          margin-bottom: 20px;
-        }
-
-        label {
-          display: block;
-          color: var(--neon-magenta);
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 12px;
-          margin-bottom: 5px;
-          letter-spacing: 1px;
-        }
-
-        input, textarea {
-          width: 100%;
-          box-sizing: border-box;
-          padding: 12px 15px;
-          background: rgba(0, 0, 0, 0.6);
-          border: 1px solid #333;
-          border-left: 3px solid var(--neon-cyan);
-          color: var(--neon-cyan);
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 16px;
-          outline: none;
-          transition: 0.3s;
-        }
-
-        input::placeholder, textarea::placeholder {
-          color: #445577;
-        }
-
-        input:focus, textarea:focus {
-          border-color: var(--neon-cyan);
-          box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
-        }
-
-        .currency-wrapper {
-          position: relative;
-        }
-        
-        .currency-wrapper span {
-          position: absolute;
-          left: 15px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--neon-cyan);
-          font-family: 'Share Tech Mono', monospace;
-          font-weight: bold;
-          font-size: 18px;
-        }
-
-        .currency-wrapper input {
-          padding-left: 35px;
-        }
-
-        .helper-text {
-          font-family: 'Share Tech Mono', monospace;
-          color: #55678a;
-          font-size: 11px;
-          margin-top: 5px;
-        }
+        input, textarea { width: 100%; box-sizing: border-box; padding: 12px 15px; background: rgba(0, 0, 0, 0.6); border: 1px solid #333; border-left: 3px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; font-size: 16px; outline: none; }
+        .currency-wrapper { position: relative; }
+        .currency-wrapper span { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; font-weight: bold; }
+        .currency-wrapper input { padding-left: 35px; }
 
         .btn {
-          width: 100%;
-          padding: 15px;
-          background: rgba(0, 243, 255, 0.05);
-          border: 1px solid var(--neon-cyan);
-          color: var(--neon-cyan);
-          font-family: 'Rajdhani', sans-serif;
-          font-weight: 700;
-          font-size: 18px;
-          letter-spacing: 1.5px;
-          text-transform: uppercase;
-          cursor: pointer;
-          position: relative;
-          transition: 0.3s;
-          box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.2);
+          width: 100%; padding: 15px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 18px; cursor: pointer; transition: 0.3s;
           clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-          margin-top: 10px;
         }
-
-        .btn:hover:not(:disabled) {
-          background: var(--neon-cyan);
-          color: #000;
-          box-shadow: 0 0 25px var(--neon-cyan);
-        }
-
-        .btn:disabled {
-          border-color: #555;
-          color: #555;
-          box-shadow: none;
-          cursor: not-allowed;
-        }
+        .btn:hover:not(:disabled) { background: var(--neon-cyan); color: #000; box-shadow: 0 0 25px var(--neon-cyan); }
     </style>
 </head>
 <body>
@@ -248,18 +89,16 @@
                     <% if (user.logo && user.logo.trim() !== '') { %>
                         <div class="avatar" style="background-image: url('<%= user.logo %>');"></div>
                     <% } else { %>
-                        <div class="avatar fallback-avatar">
-                            <%= user.name ? user.name.charAt(0).toUpperCase() : 'X' %>
+                        <div class="avatar fallback-avatar" style="display:flex; align-items:center; justify-content:center; color:var(--neon-cyan); font-size:40px; font-weight:bold;">
+                            <%= user.name.charAt(0).toUpperCase() %>
                         </div>
                     <% } %>
                 </div>
-
                 <h1 class="creator-name"><%= user.name %></h1>
                 <div class="creator-handle">> ID: @<%= user.username %></div>
             </div>
 
             <form id="payment-form">
-                
                 <div class="form-group">
                     <label>> SENDER IDENTITY (NAME)</label>
                     <input type="text" id="sender-name" required placeholder="Enter your name...">
@@ -276,7 +115,6 @@
                         <span>₹</span>
                         <input type="number" id="tip-amount" required min="10" placeholder="100">
                     </div>
-                    <div class="helper-text">> MINIMUM PROTOCOL TRANSFER: ₹10</div>
                 </div>
 
                 <button type="submit" id="pay-button" class="btn">
@@ -290,8 +128,9 @@
     const form = document.getElementById('payment-form');
     const payBtn = document.getElementById('pay-button');
 
-    const creatorId = "<%= user.id %>";
+    // From EJS
     const creatorName = "<%= user.name %>";
+    const creatorUsername = "<%= user.username %>";
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -313,23 +152,20 @@
             "amount": parseInt(amount) * 100, 
             "currency": "INR",
             "name": "Tip for " + creatorName,
-            "description": "Secure Credit Transmission",
             "handler": async function (response) {
                 payBtn.innerText = "UPLOADING DATA...";
                 try {
-                    // Inside the Razorpay handler in tip.ejs
-// Inside the Razorpay handler in tip.ejs
-const saveResponse = await fetch('/api/tip', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        username: "<%= user.username %>", // Captured from the current page's creator
-        name: name,
-        message: message,
-        amount: amount,
-        payment_id: response.razorpay_payment_id
-    })
-});
+                    const saveResponse = await fetch('/api/tip', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: creatorUsername, // Matches server-side column
+                            name: name,
+                            message: message,
+                            amount: amount,
+                            payment_id: response.razorpay_payment_id
+                        })
+                    });
 
                     const result = await saveResponse.json();
                     if (result.success) {
@@ -337,9 +173,13 @@ const saveResponse = await fetch('/api/tip', {
                         window.location.reload();
                     } else {
                         alert("TRANSMISSION ERROR: " + (result.error || "Unknown"));
+                        payBtn.disabled = false;
+                        payBtn.innerText = "[ TRANSMIT CREDITS ]";
                     }
                 } catch (err) {
-                    alert("PROTOCOL ERROR: Connection failed. Log ID: " + response.razorpay_payment_id);
+                    alert("PROTOCOL ERROR: Connection failed.");
+                    payBtn.disabled = false;
+                    payBtn.innerText = "[ TRANSMIT CREDITS ]";
                 }
             },
             "modal": {
@@ -348,21 +188,18 @@ const saveResponse = await fetch('/api/tip', {
                     payBtn.disabled = false;
                 }
             },
-            "theme": {
-                "color": "#00f3ff"
-            }
+            "theme": { "color": "#00f3ff" }
         };
 
         try {
             const rzp = new Razorpay(options);
             rzp.open();
         } catch (err) {
-            console.error("Razorpay fail:", err);
-            alert("Razorpay failed to load. Check your Key ID.");
+            alert("Razorpay failed to load.");
             payBtn.disabled = false;
             payBtn.innerText = "[ TRANSMIT CREDITS ]";
         }
     });
-</script>
+    </script>
 </body>
 </html>
