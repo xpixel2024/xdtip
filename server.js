@@ -50,22 +50,27 @@ app.get("/dashboard", (req, res) => {
 // ===================
 
 app.post("/api/tip", async (req, res) => {
-  try {
-    const { creatorId, name, message, amount, payment_id } = req.body;
+    const { userId, name, message, amount, payment_id } = req.body;
 
-    await supabase.from("tips").insert({
-      creator_id: creatorId,
-      sender: name,
-      message,
-      amount,
-      payment_id
-    });
+    // This is where the magic happens
+    const { data, error } = await supabase
+        .from("tips") // Make sure your table is named 'tips'
+        .insert([
+            {
+                user_id: userId,        // Column in Supabase
+                sender_name: name,      // Column in Supabase
+                message: message,       // Column in Supabase
+                amount: amount,         // Column in Supabase
+                payment_id: payment_id  // Column in Supabase
+            }
+        ]);
+
+    if (error) {
+        console.error("Supabase Error:", error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
 
     res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    res.json({ success: false });
-  }
 });
 
 
