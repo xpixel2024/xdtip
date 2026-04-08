@@ -485,241 +485,148 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 const client = window.supabase.createClient(
   "https://yohrquotbdmsxfeyxtqr.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
 );
 
-let userId="";
+let userId = "";
 
-async function loadUser(){
-  const {data}=await client.auth.getUser();
+// 🔥 SINGLE INITIALIZATION FUNCTION
+async function init() {
+  const { data: { user } } = await client.auth.getUser();
 
-  if(!data.user){
-    location.href="/login";
+  if (!user) {
+    location.href = "/login";
     return;
   }
 
-  userId=data.user.id;
+  userId = user.id;
 
-  setVal("alertLink",`https://xdtip.in/alert/${userId}`);
-  setVal("statsLink",`https://xdtip.in/stats/${userId}`);
+  // Set technical links
+  setVal("alertLink", `https://xdtip.in/alert/${userId}`);
+  setVal("statsLink", `https://xdtip.in/stats/${userId}`);
 
-  try{
-    const {data:profile}=await client
+  try {
+    const { data: profile } = await client
       .from("users")
       .select("*")
-      .eq("id",userId)
+      .eq("id", userId)
       .single();
 
-    if(profile){
-
-      if(profile.username){
-        setText("username",profile.username);
-        setVal("tipLink",`https://xdtip.in/${profile.username}`);
+    if (profile) {
+      // 1. Update Profile UI
+      if (profile.username) {
+        setText("username", "@" + profile.username);
+        setVal("tipLink", `https://xdtip.in/${profile.username}`);
       } else {
-        setText("username","GUEST_ENTITY");
+        setText("username", "GUEST_ENTITY");
       }
 
-      if(profile.logo){
-        document.getElementById("avatar").style.backgroundImage=`url(${profile.logo})`;
+      if (profile.logo) {
+        document.getElementById("avatar").style.backgroundImage = `url(${profile.logo})`;
       }
 
-      setText("balance","₹"+(profile.balance||0));
+      setText("balance", "₹" + (profile.balance || 0));
 
-      // Allow for both boolean true and string "true"
+      // 2. Handle KYC Display
       if (profile.kyc === true || profile.kyc === "true") {
         document.getElementById("kycSection").style.display = "none";
         document.getElementById("upiSection").style.display = "block";
-        
-        // Fallback in case upi is null or undefined
-        document.getElementById("upi").innerText = profile.upi || "NO UPI LINKED"; 
+        document.getElementById("upi").innerText = profile.upi || "NO UPI LINKED";
+      } else if (profile.kyc === "pending") {
+        setText("kycStatus", "VERIFICATION IN PROGRESS...");
+      } else {
+        setText("kycStatus", "AWAITING CLEARANCE");
       }
-      else if(profile.kyc==="pending"){
-        setText("kycStatus","VERIFICATION IN PROGRESS...");
-      }
-      else{
-        setText("kycStatus","AWAITING CLEARANCE");
+
+      // 3. 🔥 FETCH THE TIPS (INCOMING TRANSMISSIONS)
+      if (profile.username) {
+        fetchTips(profile.username);
       }
     }
-
-  }catch(e){
-    console.log("DB_OFFLINE");
+  } catch (e) {
+    console.error("DASHBOARD_BOOT_ERROR:", e);
   }
 }
 
-  async function loadDashboard() {
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) { window.location.href = "/login"; return; }
+// FETCH TIPS LOGIC
+async function fetchTips(myUsername) {
+  const tableBody = document.getElementById("transmissionBody");
 
-    userId = user.id;
+  const { data: tips, error } = await client
+    .from("tips")
+    .select("*")
+    .ilike("username", myUsername) 
+    .order("created_at", { ascending: false });
 
-    const { data: profile } = await client
-        .from("users")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-    if (profile && profile.username) {
-        // ... set your UI elements ...
-        
-        // 🔥 CRITICAL: Pass the username into the function here!
-        fetchTips(profile.username); 
-    }
-}
-
-loadUser();
-
-// SAVE PROFILE + LOGO
-async function saveProfile(){
-
-  const username=document.getElementById("nameInput").value;
-  const file=document.getElementById("logoUpload").files[0];
-
-  let logoUrl=null;
-
-  if(file){
-    const fileName=userId+"_"+Date.now();
-
-    const {error}=await client.storage
-      .from("logos")
-      .upload(fileName,file);
-
-    if(!error){
-      logoUrl=client.storage
-        .from("logos")
-        .getPublicUrl(fileName).data.publicUrl;
-
-      document.getElementById("avatar").style.backgroundImage=`url(${logoUrl})`;
-    }
+  if (error) {
+    tableBody.innerHTML = "<tr><td colspan='4' style='color:red;'>ERROR: DATA_CORRUPTED</td></tr>";
+    return;
   }
 
-  await client.from("users").upsert({
-    id:userId,
-    username:username,
-    logo:logoUrl
+  if (!tips || tips.length === 0) {
+    tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; opacity:0.5;'>NO TRANSMISSIONS DETECTED</td></tr>";
+    return;
+  }
+
+  tableBody.innerHTML = "";
+  tips.forEach(tip => {
+    const date = new Date(tip.created_at).toLocaleString();
+    const row = `
+      <tr>
+        <td style="color: var(--neon-cyan); font-weight:bold;">${tip.sender_name || 'ANON'}</td>
+        <td style="color: #8fa1d0; font-style: italic;">"${tip.message || '---'}"</td>
+        <td style="color: var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
+        <td style="font-size: 11px; opacity:0.6;">${date}</td>
+      </tr>
+    `;
+    tableBody.insertAdjacentHTML('beforeend', row);
+  });
+}
+
+// SAVE PROFILE
+async function saveProfile() {
+  const username = document.getElementById("nameInput").value;
+  if (!username) return alert("Enter Designation First");
+
+  const { error } = await client.from("users").upsert({
+    id: userId,
+    username: username
   });
 
-  setText("username",username);
-  setVal("tipLink",`https://xdtip.in/${username}`);
+  if (!error) location.reload();
 }
 
 // HELPERS
-function setText(id,text){
-  const el=document.getElementById(id);
-  el.innerText=text;
-  el.classList.remove("loading");
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) { el.innerText = text; el.classList.remove("loading"); }
 }
-function setVal(id,text){
-  const el=document.getElementById(id);
-  el.value=text;
-  el.classList.remove("loading");
+function setVal(id, text) {
+  const el = document.getElementById(id);
+  if (el) { el.value = text; el.classList.remove("loading"); }
 }
 
-// KYC
-function openKyc(){document.getElementById("kycPopup").style.display="flex";}
-function closeKyc(){document.getElementById("kycPopup").style.display="none";}
+function openKyc() { document.getElementById("kycPopup").style.display = "flex"; }
+function closeKyc() { document.getElementById("kycPopup").style.display = "none"; }
 
-async function submitKyc(){
-  // Prevent double submissions while uploading
-  const btn = document.querySelector("#kycPopup .btn.green");
-  const originalText = btn.innerText;
-  btn.innerText = "UPLOADING...";
-  btn.disabled = true;
-
-  const name=document.getElementById("fullName").value;
-  const upi=document.getElementById("upiInput").value;
-  const panFile=document.getElementById("panUpload").files[0];
-
-  let panUrl = null;
-
-  if(panFile){
-    const fileName="pan_"+userId+"_"+Date.now();
-    
-    // Ensure you create a bucket named 'kyc_docs' in your Supabase project!
-    const {error} = await client.storage
-      .from("kyc_docs") 
-      .upload(fileName, panFile);
-
-    if(!error){
-      panUrl = client.storage
-        .from("kyc_docs")
-        .getPublicUrl(fileName).data.publicUrl;
-    } else {
-      console.error("PAN Upload Error:", error);
-      alert("UPLOAD FAILED: Verify storage bucket [kyc_docs] permissions.");
-      btn.innerText = originalText;
-      btn.disabled = false;
-      return;
-    }
-  }
-
-  await client.from("users").upsert({
-    id:userId,
-    name:name,
-    upi:upi,
-    pan_url:panUrl, // Added this payload
-    kyc:"pending"
-  });
-
-  setText("kycStatus","VERIFICATION IN PROGRESS...");
-  
-  // Reset Button
-  btn.innerText = originalText;
-  btn.disabled = false;
-  closeKyc();
+async function logout() {
+  await client.auth.signOut();
+  location.href = "https://xdtip.in/";
 }
 
-// COPY
-function copy(id){
-  const el=document.getElementById(id);
+function copy(id) {
+  const el = document.getElementById(id);
   el.select();
   document.execCommand("copy");
 }
 
-// LOGOUT
-async function logout(){
-  await client.auth.signOut();
-  location.href="https://xdtip.in/";
-}
-
-// 🔥 FIX 2: Cleaned up the duplicate fetchTips function
-async function fetchTips(myUsername) {
-    const tableBody = document.getElementById("transmissionBody");
-
-    // Change .eq to .ilike to ignore Capital/Small letter differences
-    const { data: tips, error } = await client
-        .from("tips")
-        .select("*")
-        .ilike("username", myUsername) 
-        .order("created_at", { ascending: false });
-
-    if (error) {
-        tableBody.innerHTML = "<tr><td colspan='4' style='color:red;'>ERROR: DATA_CORRUPTED</td></tr>";
-        return;
-    }
-
-    if (!tips || tips.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; opacity:0.5;'>NO TRANSMISSIONS DETECTED</td></tr>";
-        return;
-    }
-
-    tableBody.innerHTML = ""; 
-    tips.forEach(tip => {
-        const date = new Date(tip.created_at).toLocaleString();
-        const row = `
-            <tr>
-                <td style="color: var(--neon-cyan); font-weight:bold;">${tip.sender_name}</td>
-                <td style="color: #8fa1d0; font-style: italic;">"${tip.message || '---'}"</td>
-                <td style="color: var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
-                <td style="font-size: 12px; opacity:0.6;">${date}</td>
-            </tr>
-        `;
-        tableBody.insertAdjacentHTML('beforeend', row);
-    });
-}
-  
+// 🔥 START THE SYSTEM
+init();
 </script>
 
 <div class="footer">
