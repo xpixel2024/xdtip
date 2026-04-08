@@ -664,11 +664,18 @@ async function fetchTips(myUsername) {
     const tableBody = document.getElementById("transmissionBody");
 
     // Scanning tips table where username = your username
+    async function fetchTips(myUsername) {
+    const tableBody = document.getElementById("transmissionBody");
+
+    // Change .eq to .ilike to ignore Capital/Small letter differences
     const { data: tips, error } = await client
         .from("tips")
         .select("*")
-        .eq("username", myUsername) 
+        .ilike("username", myUsername) // 🔥 Fix: ilike is case-insensitive
         .order("created_at", { ascending: false });
+
+    // ... (rest of your existing code to display rows)
+}
 
     if (error) {
         tableBody.innerHTML = "<tr><td colspan='4' style='color:red;'>ERROR: DATA_CORRUPTED</td></tr>";
