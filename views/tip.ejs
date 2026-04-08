@@ -317,17 +317,18 @@
             "handler": async function (response) {
                 payBtn.innerText = "UPLOADING DATA...";
                 try {
-                    const saveResponse = await fetch('/api/tip', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            userId: creatorId,
-                            name: name,
-                            message: message,
-                            amount: amount,
-                            payment_id: response.razorpay_payment_id
-                        })
-                    });
+                    // Inside the Razorpay handler in tip.ejs
+const saveResponse = await fetch('/api/tip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        recipient_username: "<%= user.username %>", // Using username instead of ID
+        name: name,
+        message: message,
+        amount: amount,
+        payment_id: response.razorpay_payment_id
+    })
+});
 
                     const result = await saveResponse.json();
                     if (result.success) {
