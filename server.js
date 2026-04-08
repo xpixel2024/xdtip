@@ -4,7 +4,10 @@ const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
-// 🔥 SUPABASE
+// 1. DYNAMIC PORT FOR RENDER (CRITICAL)
+const PORT = process.env.PORT || 3000;
+
+// 🔥 SUPABASE SETUP
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -12,106 +15,94 @@ const supabase = createClient(
 
 // MIDDLEWARE
 app.use(express.json());
+// It's good practice to add urlencoded if you ever use standard HTML forms
+app.use(express.urlencoded({ extended: true })); 
 app.use(express.static(path.join(__dirname, "public")));
 
 // VIEW ENGINE
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-
 // ===================
 // CLEAN .html URL
 // ===================
+// Redirects /login.html to /login
 app.get(/\.html$/, (req, res) => {
   const clean = req.path.replace(".html", "");
-  res.redirect(clean);
+  res.redirect(301, clean);
 });
-
 
 // ===================
 // STATIC ROUTES
 // ===================
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
-});
-
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/login.html"));
-});
-
-app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/dashboard.html"));
-});
-
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
 
 // ===================
 // SAVE TIP API
 // ===================
-
 app.post("/api/tip", async (req, res) => {
-    // Make sure 'username' is what you destructure from req.body
     const { username, name, message, amount, payment_id } = req.body;
 
-    const { error } = await supabase
-        .from("tips")
-        .insert([
-            {
-                username: username,    // Must match the column name in Supabase tips table
-                sender_name: name,
-                message: message,
-                amount: amount,
-                payment_id: payment_id
-            }
-        ]);
+    try {
+        const { error } = await supabase
+            .from("tips")
+            .insert([
+                {
+                    username: username,
+                    sender_name: name,
+                    message: message,
+                    amount: parseFloat(amount), // Ensure amount is a number
+                    payment_id: payment_id
+                }
+            ]);
 
-    if (error) {
-        return res.status(500).json({ success: false, error: error.message });
+        if (error) throw error;
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Save Tip Error:", err.message);
+        res.status(500).json({ success: false, error: err.message });
     }
-    res.json({ success: true });
 });
 
-
 // ===================
-// USERNAME ROUTE (ONLY ONE! 🔥)
+// USERNAME ROUTE (Dynamic Tip Page)
 // ===================
-
 app.get("/:username", async (req, res) => {
   try {
     const username = req.params.username;
 
-    // 🚫 block system routes
-    const blocked = ["login", "dashboard", "admin", "api"];
-
-    if (blocked.includes(username)) {
+    // 🚫 Block system routes
+    const blocked = ["login", "dashboard", "admin", "api", "index"];
+    if (blocked.includes(username.toLowerCase())) {
       return res.redirect("/");
     }
 
-    // 🔥 FIX: use ilike (case-insensitive)
-    const { data } = await supabase
+    // ilike makes it case-insensitive (e.g., /xdfunYT and /xdfunyt both work)
+    const { data, error } = await supabase
       .from("users")
       .select("*")
       .ilike("username", username)
       .maybeSingle();
 
-    console.log("Searching username:", username);
-    console.log("DB result:", data);
-
-    if (!data) {
-      return res.send("User not found");
+    if (error || !data) {
+      console.log(`User [${username}] not found.`);
+      return res.status(404).send("User not found");
     }
 
     res.render("tip", { user: data });
 
   } catch (err) {
-    console.error(err);
-    res.send("Server error");
+    console.error("Route Error:", err);
+    res.status(500).send("Internal Server Error");
   }
 });
 
-
 // ===================
-
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+// START SERVER
+// ===================
+app.listen(PORT, () => {
+  console.log(`🚀 Terminal Online: http://localhost:${PORT}`);
 });
