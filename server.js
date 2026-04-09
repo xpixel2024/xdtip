@@ -133,29 +133,25 @@ app.get('/alert/:token', async (req, res) => {
     }
 });
 
-/// ==========================
+// ==========================
 // M. TEST ALERT (Supabase Broadcast)
 // ==========================
 app.post('/test-alert', async (req, res) => {
-    // 1. Grab the username and fake tip data from the dashboard
     const { username, tipper, amount, message } = req.body;
 
     if (!username) {
         return res.status(400).json({ error: "Username is required" });
     }
 
-    // 2. Use that data, OR fallback to default test text
     const alertData = {
         tipper: tipper || "Test Commander",
         amount: amount || 69,
         message: message || "System uplink successful! 🚀"
     };
 
-    // 3. Connect to this specific user's walkie-talkie channel
     const roomName = `alert-room-${username.toLowerCase()}`;
     const channel = supabase.channel(roomName);
     
-    // 4. Subscribe, Broadcast the fake tip, and disconnect
     channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
             await channel.send({
@@ -164,8 +160,10 @@ app.post('/test-alert', async (req, res) => {
                 payload: alertData
             });
             
-            // Instantly delete the channel connection so the server doesn't lag
-            supabase.removeChannel(channel);
+            // 🔥 FIX: Wait half a second before hanging up so the message actually sends!
+            setTimeout(() => {
+                supabase.removeChannel(channel);
+            }, 500);
         }
     });
 
@@ -188,7 +186,7 @@ app.post('/replay-alert', async (req, res) => {
         const { data: lastTip, error } = await supabase
             .from('tips')
             .select('sender_name, amount, message')
-            .eq('username', username) // Matches the creator's username
+            .ilike('username', username) // 🔥 FIX: ilike ignores uppercase/lowercase issues
             .order('created_at', { ascending: false }) // Get newest first
             .limit(1) // Only get one
             .single();
@@ -213,12 +211,14 @@ app.post('/replay-alert', async (req, res) => {
             if (status === 'SUBSCRIBED') {
                 await channel.send({
                     type: 'broadcast',
-                    event: 'test-tip', // We reuse the 'test-tip' listener on the overlay so it plays instantly
+                    event: 'test-tip', 
                     payload: alertData
                 });
                 
-                // Instantly delete the channel connection so the server doesn't lag
-                supabase.removeChannel(channel);
+                // 🔥 FIX: Wait half a second before hanging up so the message actually sends!
+                setTimeout(() => {
+                    supabase.removeChannel(channel);
+                }, 500);
             }
         });
 
