@@ -65,26 +65,38 @@
                 return;
             }
 
-            console.log("📡 Neon Overlay Connected to OBS. Awaiting Tips for:", user.username);
+            console.log("📡 Connected to OBS. Awaiting Tips for:", user.username);
 
             client
-                .channel('public:tips')
+                // 🔥 1. Change the channel name to match the server
+                .channel(`alert-room-${user.username.toLowerCase()}`)
+                
+                // 🔥 2. Listener for REAL MONEY (Database)
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${user.username}` },
                     (payload) => {
-                        const newTipData = {
+                        queue.push({
                             tipper: payload.new.sender_name,
                             amount: payload.new.amount,
                             message: payload.new.message
-                        };
-                        queue.push(newTipData); 
+                        }); 
+                        processQueue();
+                    }
+                )
+                
+                // 🔥 3. Listener for TEST ALERTS (Walkie-Talkie)
+                .on(
+                    'broadcast',
+                    { event: 'test-tip' },
+                    (payload) => {
+                        // Push the fake alert data straight into the animation queue!
+                        queue.push(payload.payload); 
                         processQueue();
                     }
                 )
                 .subscribe();
         }
-
         function processQueue() {
             if (isPlaying || queue.length === 0) return;
             isPlaying = true;
