@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="referrer" content="no-referrer">
     <title>Classic Overlay</title>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         /* --- FONT SETUP (Classic/Royal Style) --- */
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');
@@ -24,7 +26,6 @@
         #alert-box {
             text-align: center; 
             opacity: 0; 
-            /* Classic = No Skew, Standard Scaling */
             transform: scale(0.9); 
             transition: all 0.5s ease-in-out;
             
@@ -113,17 +114,58 @@
     </div>
 
     <script>
-        var socket = io(); 
+        const client = window.supabase.createClient(
+            "https://yohrquotbdmsxfeyxtqr.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+        );
+
         var queue = []; 
         var isPlaying = false;
 
+        // Extract the obs_token from the URL (e.g., xdtip.in/alert/12345)
         var pathParts = window.location.pathname.split('/');
-        var uuid = pathParts[pathParts.length - 1]; 
-        if (!uuid) uuid = pathParts[pathParts.length - 2];
+        var token = pathParts[pathParts.length - 1]; 
+        if (!token) token = pathParts[pathParts.length - 2];
 
-        if (uuid && uuid !== "overlay") { socket.emit('join-overlay', uuid); }
+        async function initAlerts() {
+            // Find the user this token belongs to
+            const { data: user, error } = await client
+                .from('users')
+                .select('username')
+                .eq('obs_token', token)
+                .single();
 
-        socket.on('new-tip', (data) => { queue.push(data); processQueue(); });
+            if (error || !user) {
+                console.error("OVERLAY ERROR: Invalid OBS Token");
+                return;
+            }
+
+            console.log("📡 Connected. Awaiting Tips for:", user.username);
+
+            // Listen to the 'tips' table for this specific user
+            client
+                .channel('public:tips')
+                .on(
+                    'postgres_changes',
+                    { 
+                        event: 'INSERT', 
+                        schema: 'public', 
+                        table: 'tips',
+                        filter: `username=eq.${user.username}` 
+                    },
+                    (payload) => {
+                        // Map Supabase payload to your old socket logic structure
+                        const newTipData = {
+                            tipper: payload.new.sender_name,
+                            amount: payload.new.amount,
+                            message: payload.new.message
+                        };
+                        queue.push(newTipData); 
+                        processQueue();
+                    }
+                )
+                .subscribe();
+        }
 
         function processQueue() {
             if (isPlaying || queue.length === 0) return;
@@ -146,25 +188,17 @@
             box.classList.add('show');
 
             // --- FIXED ROBUST TTS LOGIC ---
-            
-            // 1. Prepare Text
             var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
-            
-            // 2. Detect Language
             var hasHindiScript = /[\u0900-\u097F]/.test(fullText);
             var lang = hasHindiScript ? 'hi' : 'en'; 
             
-            // 3. Robust URL Generation (Prevents 403 Blocking)
-            // We use 'idx=0', 'total=1', and 'client=tw-ob' to look like a real browser
             var safeText = encodeURIComponent(fullText.substring(0, 200)); 
             var audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=${lang}&total=1&idx=0&textlen=${safeText.length}&client=tw-ob&prev=input&ttsspeed=1`;
 
             var audio = new Audio(audioUrl);
             
-            // 4. Events
             audio.onended = () => finishAlert(box);
             
-            // Safety: If audio fails/blocks, close box after 5s anyway
             audio.onerror = () => {
                 console.error("Audio failed to load (Check OBS/Network)");
                 setTimeout(() => finishAlert(box), 5000); 
@@ -187,6 +221,9 @@
                 }, 1000); 
             }, 2000);
         }
+
+        // Boot the system
+        initAlerts();
     </script>
 </body>
 </html>
