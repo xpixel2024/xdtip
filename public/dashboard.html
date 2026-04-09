@@ -479,6 +479,38 @@ async function submitKyc() {
   btn.disabled = false;
 }
 
+async function setupOBS(user){
+
+  // if token not exist → create one
+  if(!user.obs_token){
+
+    const token = crypto.randomUUID(); // 🔥 unique token
+
+    await supabase
+      .from("users")
+      .update({ obs_token: token })
+      .eq("id", user.id);
+
+    user.obs_token = token;
+  }
+
+  // if theme not set → default
+  if(!user.overlay_theme){
+
+    await supabase
+      .from("users")
+      .update({ overlay_theme: "basic" })
+      .eq("id", user.id);
+
+    user.overlay_theme = "basic";
+  }
+
+  // 🔥 SHOW OBS LINK
+  const overlayLink = `https://xdtip.in/overlay/${user.obs_token}`;
+
+  document.getElementById("obsLink").innerText = overlayLink;
+}
+
 // HELPERS
 function setText(id, text) {
   const el = document.getElementById(id);
