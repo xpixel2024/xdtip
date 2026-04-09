@@ -254,18 +254,6 @@ async function init() {
 
   userId = user.id;
 
-  setVal("alertLink", `setText("balance", "₹" + (profile.balance || 0));
-
-      // 🔥 FIXED: Generate links using the correct data
-      setVal("statsLink", `https://xdtip.in/alert/${profile.obs_token}`);
-      
-      if (profile.obs_token) {
-        setVal("alertLink", `https://xdtip.in/alert/${profile.obs_token}`);
-      } else {
-        setVal("alertLink", "NO_TOKEN_FOUND_IN_DB");
-      }${userId}`);
-  setVal("statsLink", `https://xdtip.in/stats/${userId}`);
-
   try {
     const { data: profile } = await client
       .from("users")
@@ -289,6 +277,30 @@ async function init() {
       }
 
       setText("balance", "₹" + (profile.balance || 0));
+
+      // --- SMART OBS TOKEN LOGIC ---
+      let obsToken = profile.obs_token;
+      
+      // If user doesn't have an obs_token, create one instantly!
+      if (!obsToken) {
+        obsToken = crypto.randomUUID(); 
+        await client
+          .from("users")
+          .update({ obs_token: obsToken })
+          .eq("id", userId);
+      }
+
+      // Default theme setting
+      if (!profile.overlay_theme) {
+        await client
+          .from("users")
+          .update({ overlay_theme: "basic" })
+          .eq("id", userId);
+      }
+
+      // 🔥 POPULATE LINKS WITH CORRECT DATA
+      setVal("statsLink", `https://xdtip.in/stats/${userId}`);
+      setVal("alertLink", `https://xdtip.in/alert/${obsToken}`);
 
       // Handle KYC Display
       if (profile.kyc === true || profile.kyc === "true") {
@@ -486,38 +498,6 @@ async function submitKyc() {
   
   btn.innerText = "TRANSMIT";
   btn.disabled = false;
-}
-
-async function setupOBS(user){
-
-  // if token not exist → create one
-  if(!user.obs_token){
-
-    const token = crypto.randomUUID(); // 🔥 unique token
-
-    await supabase
-      .from("users")
-      .update({ obs_token: token })
-      .eq("id", user.id);
-
-    user.obs_token = token;
-  }
-
-  // if theme not set → default
-  if(!user.overlay_theme){
-
-    await supabase
-      .from("users")
-      .update({ overlay_theme: "basic" })
-      .eq("id", user.id);
-
-    user.overlay_theme = "basic";
-  }
-
-  // 🔥 SHOW OBS LINK
-  const overlayLink = `https://xdtip.in/overlay/${user.obs_token}`;
-
-  document.getElementById("obsLink").innerText = overlayLink;
 }
 
 // HELPERS
