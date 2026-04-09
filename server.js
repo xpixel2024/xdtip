@@ -178,35 +178,47 @@ app.post('/replay-alert', async (req, res) => {
     const { username } = req.body;
 
     if (!username) {
+        console.error("Replay Error: No username provided by dashboard");
         return res.status(400).json({ error: "Username is required" });
     }
 
     try {
-        // 1. Fetch the actual LAST tip from Supabase history for this user
-        const { data: lastTip, error } = await supabase
+        console.log(`[Replay] Searching for last tip for user: ${username}`);
+
+        // 1. Fetch the LAST tip safely without using the buggy .single() method
+        const { data: lastTipData, error } = await supabase
             .from('tips')
             .select('sender_name, amount, message')
-            .ilike('username', username) // 🔥 FIX: ilike ignores uppercase/lowercase issues
-            .order('created_at', { ascending: false }) // Get newest first
-            .limit(1) // Only get one
-            .single();
+            .ilike('username', username) 
+            .order('created_at', { ascending: false }) 
+            .limit(1); 
 
-        if (error || !lastTip) {
-            return res.status(404).json({ success: false, message: "No recent tips found in history." });
+        // 2. Handle specific database errors
+        if (error) {
+            console.error("[Replay] Supabase Database Error:", error);
+            return res.status(500).json({ success: false, message: "Database connection error." });
         }
 
-        // 2. Prepare Alert Data
+        // 3. Handle empty database (if you haven't received a real tip yet!)
+        if (!lastTipData || lastTipData.length === 0) {
+            console.log(`[Replay] No tips found for ${username}`);
+            return res.status(404).json({ success: false, message: "No recent tips found in your history." });
+        }
+
+        // 4. Extract the exact tip from the array
+        const lastTip = lastTipData[0];
+
+        // 5. Prepare Alert Data
         const alertData = {
             tipper: lastTip.sender_name || "Anonymous",
             amount: lastTip.amount,
             message: lastTip.message
         };
 
-        // 3. Connect to this specific user's walkie-talkie channel
+        // 6. Broadcast to OBS
         const roomName = `alert-room-${username.toLowerCase()}`;
         const channel = supabase.channel(roomName);
 
-        // 4. Subscribe, Broadcast the real tip, and disconnect
         channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 await channel.send({
@@ -215,18 +227,18 @@ app.post('/replay-alert', async (req, res) => {
                     payload: alertData
                 });
                 
-                // 🔥 FIX: Wait half a second before hanging up so the message actually sends!
+                // Wait half a second before hanging up so the message sends
                 setTimeout(() => {
                     supabase.removeChannel(channel);
                 }, 500);
             }
         });
 
-        console.log(`↺ Replayed last tip for ${username}: ₹${alertData.amount} from ${alertData.tipper}`);
+        console.log(`[Replay] SUCCESS! Replayed tip: ₹${alertData.amount} from ${alertData.tipper}`);
         res.json({ success: true, message: "Last tip replayed successfully!" });
 
     } catch (err) {
-        console.error("Replay Error:", err);
+        console.error("[Replay] Critical Server Error:", err);
         res.status(500).json({ success: false, error: "Server Error during replay" });
     }
 });
