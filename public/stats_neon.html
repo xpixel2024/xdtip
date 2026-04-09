@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Neon Stats</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&display=swap');
+        
+        body { margin: 0; padding: 20px; overflow: hidden; background: transparent; font-family: 'Orbitron', sans-serif; }
+
+        /* NEON BOX */
+        #stats-container {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 15px #ff00ff, inset 0 0 10px #ff00ff;
+            padding: 15px; color: #fff;
+            transform: skewX(-10deg); /* Cyberpunk Tilt */
+            margin-left: 20px;
+        }
+
+        .label { font-size: 10px; color: #00ffff; letter-spacing: 2px; margin-bottom: 5px; text-shadow: 0 0 5px #00ffff; }
+
+        /* ROTATOR */
+        .rotator-box { display: flex; align-items: center; justify-content: space-between; height: 50px; }
+        
+        .tipper-name { 
+            font-size: 22px; font-weight: 900; color: #fff; 
+            text-shadow: 2px 2px 0px #ff00ff;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .tipper-amount { 
+            font-size: 20px; color: #00ffff; text-shadow: 0 0 10px #00ffff; 
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .visible { opacity: 1 !important; }
+
+        .rank-badge { 
+            background: #ff00ff; color: #000; padding: 2px 5px; 
+            font-size: 12px; margin-right: 10px; font-weight: bold;
+        }
+
+        /* LATEST LIST */
+        .divider { height: 2px; background: #00ffff; margin: 15px 0; box-shadow: 0 0 10px #00ffff; }
+        .latest-list { list-style: none; padding: 0; margin: 0; }
+        .latest-item { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: #ddd; }
+        .latest-amt { color: #ff00ff; text-shadow: 0 0 5px #ff00ff; }
+    </style>
+</head>
+<body>
+    <div id="stats-container">
+        <div class="label">TOP COMMANDERS</div>
+        <div class="rotator-box">
+            <div style="display:flex; align-items:center;">
+                <span id="rank" class="rank-badge">#1</span>
+                <span id="rotator-name" class="tipper-name">Loading...</span>
+            </div>
+            <span id="rotator-amount" class="tipper-amount">0</span>
+        </div>
+        <div class="divider"></div>
+        <div class="label">INCOMING SIGNAL</div>
+        <ul id="latest-list" class="latest-list"></ul>
+    </div>
+
+   <script>
+        var socket = io(); 
+        var queue = []; 
+        var isPlaying = false;
+
+        // We don't need loadVoices anymore because we are fetching audio files now
+        
+        var pathParts = window.location.pathname.split('/');
+        var uuid = pathParts[pathParts.length - 1]; 
+        if (!uuid) uuid = pathParts[pathParts.length - 2];
+
+        if (uuid && uuid !== "overlay") { socket.emit('join-overlay', uuid); }
+
+        socket.on('new-tip', (data) => { queue.push(data); processQueue(); });
+
+        function processQueue() {
+            if (isPlaying || queue.length === 0) return;
+            isPlaying = true;
+            var data = queue.shift();
+            showAlert(data);
+        }
+
+        function showAlert(data) {
+            var senderName = data.tipper || "Anonymous";
+            // Update Text
+            document.getElementById('sender').innerText = senderName;
+            document.getElementById('amount').innerText = "₹" + data.amount;
+            document.getElementById('message-text').innerText = `"${data.message}"`;
+            
+            // Show Box
+            var box = document.getElementById('alert-box');
+            box.classList.add('show');
+
+            // --- THE NEW AUDIO LOGIC (OBS FRIENDLY) ---
+            
+            // 1. Prepare the text
+            var fullText = `${senderName} sent ${data.amount} rupees. ${data.message}`;
+            
+            // 2. Detect Language (Simple Check)
+            var hasHindiScript = /[\u0900-\u097F]/.test(data.message);
+            var lang = hasHindiScript ? 'hi' : 'en'; // 'hi' for Hindi, 'en' for English
+            
+            // 3. Create the Google Translate TTS URL
+            // Note: We limit text to 200 chars to avoid API errors on this free hack
+            var safeText = encodeURIComponent(fullText.substring(0, 200)); 
+            var audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${safeText}`;
+
+            // 4. Play it as an Audio Object (This is what OBS can hear!)
+            var audio = new Audio(audioUrl);
+            
+            audio.onended = () => finishAlert(box);
+            audio.onerror = () => {
+                console.error("Audio failed to load.");
+                finishAlert(box); // Close anyway if audio fails
+            };
+
+            audio.play().catch(e => {
+                console.error("Autoplay blocked or error:", e);
+                finishAlert(box);
+            });
+        }
+
+        function finishAlert(box) {
+            setTimeout(() => { 
+                box.classList.remove('show'); 
+                setTimeout(() => { 
+                    isPlaying = false; 
+                    processQueue(); 
+                }, 1000); 
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

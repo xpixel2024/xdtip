@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
+    <title>Minimal Overlay</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@500;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Hind:wght@500&display=swap');
+        
+        body { margin: 0; overflow: hidden; background: transparent; height: 100vh; display: flex; align-items: flex-end; justify-content: center; font-family: 'Roboto', 'Hind', sans-serif; padding-bottom: 50px; }
+        
+        #alert-box {
+            display: flex; align-items: center; gap: 20px;
+            opacity: 0; transform: translateY(50px); transition: all 0.5s ease-out;
+            background: rgba(255, 255, 255, 0.95); padding: 15px 30px; 
+            border-left: 10px solid #2ecc71; border-radius: 50px; box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        #alert-box.show { opacity: 1; transform: translateY(0); }
+        
+        .alert-text { font-size: 28px; color: #222; margin: 0; font-weight: 900; }
+        .highlight { color: #2ecc71; } 
+        .amount { color: #27ae60; background: #eafff2; padding: 2px 10px; border-radius: 10px; }
+        .message { font-size: 20px; color: #555; margin: 0; font-weight: 500; border-left: 2px solid #ddd; padding-left: 15px; }
+    </style>
+</head>
+<body>
+    <div id="alert-box">
+        <h1 class="alert-text">
+            <span id="sender" class="highlight">USER</span> 
+            <span style="font-size: 20px; color:#888;">tipped</span> 
+            <span id="amount" class="amount">500</span>
+        </h1>
+        <p class="message" id="message-text">Message goes here...</p>
+    </div>
+
+    <script>
+        var socket = io(); 
+        var queue = []; 
+        var isPlaying = false;
+
+        var pathParts = window.location.pathname.split('/');
+        var uuid = pathParts[pathParts.length - 1]; 
+        if (!uuid) uuid = pathParts[pathParts.length - 2];
+
+        if (uuid && uuid !== "overlay") { socket.emit('join-overlay', uuid); }
+
+        socket.on('new-tip', (data) => { queue.push(data); processQueue(); });
+
+        function processQueue() {
+            if (isPlaying || queue.length === 0) return;
+            isPlaying = true;
+            var data = queue.shift();
+            showAlert(data);
+        }
+
+        function showAlert(data) {
+            var senderName = data.tipper || "Anonymous";
+            var messageText = data.message || "Thank you for the support!";
+            
+            // Update Text
+            document.getElementById('sender').innerText = senderName;
+            document.getElementById('amount').innerText = "₹" + data.amount;
+            document.getElementById('message-text').innerText = `"${messageText}"`;
+            
+            // Show Box
+            var box = document.getElementById('alert-box');
+            box.classList.add('show');
+
+            // --- FIXED ROBUST TTS LOGIC ---
+            
+            // 1. Prepare Text
+            var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
+            
+            // 2. Detect Language
+            var hasHindiScript = /[\u0900-\u097F]/.test(fullText);
+            var lang = hasHindiScript ? 'hi' : 'en'; 
+            
+            // 3. Robust URL Generation (Prevents 403 Blocking)
+            // We use 'idx=0', 'total=1', and 'client=tw-ob' to look like a real browser
+            var safeText = encodeURIComponent(fullText.substring(0, 200)); 
+            var audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=${lang}&total=1&idx=0&textlen=${safeText.length}&client=tw-ob&prev=input&ttsspeed=1`;
+
+            var audio = new Audio(audioUrl);
+            
+            // 4. Events
+            audio.onended = () => finishAlert(box);
+            
+            // Safety: If audio fails/blocks, close box after 5s anyway
+            audio.onerror = () => {
+                console.error("Audio failed to load (Check OBS/Network)");
+                setTimeout(() => finishAlert(box), 5000); 
+            };
+
+            // Play
+            audio.play().catch(e => {
+                console.error("Autoplay blocked:", e);
+                // If blocked, wait 5s then close
+                setTimeout(() => finishAlert(box), 5000);
+            });
+        }
+
+        function finishAlert(box) {
+            setTimeout(() => { 
+                box.classList.remove('show'); 
+                setTimeout(() => { 
+                    isPlaying = false; 
+                    processQueue(); 
+                }, 1000); 
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

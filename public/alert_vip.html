@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer"> 
+    <title>VIP Gold Overlay</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap'); /* Premium Font */
+        
+        body { margin: 0; overflow: hidden; background: transparent; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; }
+        
+        #alert-box {
+            text-align: center; opacity: 0; transform: translateY(50px); transition: all 0.6s ease-out;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%); /* Black/Dark Grey */
+            padding: 40px 60px; 
+            border: 4px solid #FFD700; /* Gold Border */
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.4), inset 0 0 20px rgba(255, 215, 0, 0.2);
+            border-radius: 20px; min-width: 500px;
+            position: relative;
+        }
+        
+        /* Gold Shine Effect */
+        #alert-box::after {
+            content: ""; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255,215,0,0.1), transparent);
+            transform: rotate(45deg); animation: shine 3s infinite; pointer-events: none;
+        }
+        @keyframes shine { 0% { left: -100%; } 100% { left: 100%; } }
+
+        #alert-box.show { opacity: 1; transform: translateY(0); }
+        
+        .alert-text { font-size: 32px; color: #FFD700; margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .highlight { color: #fff; text-shadow: 0 0 10px #fff; } 
+        .amount { 
+            color: #FFD700; font-size: 56px; display: block; margin: 15px 0; 
+            text-shadow: 0 0 20px #FFD700; border-bottom: 2px solid #333; padding-bottom: 10px;
+        }
+        .message { font-size: 24px; color: #ccc; margin-top: 20px; font-style: italic; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+    <div id="alert-box">
+        <h1 class="alert-text">
+            <span id="sender" class="highlight">VIP USER</span> <br> 
+            SUPPORTER <br> 
+            <span id="amount" class="amount">₹5000</span>
+        </h1>
+        <p class="message" id="message-text">Message goes here...</p>
+    </div>
+
+    <script>
+        var socket = io(); 
+        var queue = []; 
+        var isPlaying = false;
+
+        var pathParts = window.location.pathname.split('/');
+        var uuid = pathParts[pathParts.length - 1]; 
+        if (!uuid) uuid = pathParts[pathParts.length - 2];
+
+        if (uuid && uuid !== "overlay") { socket.emit('join-overlay', uuid); }
+
+        socket.on('new-tip', (data) => { queue.push(data); processQueue(); });
+
+        function processQueue() {
+            if (isPlaying || queue.length === 0) return;
+            isPlaying = true;
+            var data = queue.shift();
+            showAlert(data);
+        }
+
+        function showAlert(data) {
+            var senderName = data.tipper || "Anonymous";
+            var messageText = data.message || "Thank you for the support!";
+            
+            // Update Text on Screen
+            document.getElementById('sender').innerText = senderName;
+            document.getElementById('amount').innerText = "₹" + data.amount;
+            document.getElementById('message-text').innerText = `"${messageText}"`;
+            
+            var box = document.getElementById('alert-box');
+            box.classList.add('show');
+
+            // --- FIXED TTS SCRIPT ---
+            var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
+            
+            // 1. Detect Language
+            var hasHindiScript = /[\u0900-\u097F]/.test(fullText);
+            var lang = hasHindiScript ? 'hi' : 'en';
+
+            // 2. Build Robust Google Audio URL
+            // We limit to 150 chars to be safe, and add extra params to prevent blocking
+            var safeText = encodeURIComponent(fullText.substring(0, 150)); 
+            var audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=${lang}&total=1&idx=0&textlen=${safeText.length}&client=tw-ob&prev=input&ttsspeed=1`;
+
+            var audio = new Audio(audioUrl);
+            audio.volume = 1.0;
+            
+            // 3. Cleanup when audio finishes
+            audio.onended = () => finishAlert(box);
+            
+            // 4. Safety Fallback: If Google blocks it, close box after 5 seconds anyway
+            audio.onerror = (e) => {
+                console.error("Audio Failed to Load (Likely Blocked)", e);
+                setTimeout(() => finishAlert(box), 5000);
+            };
+
+            // 5. Play Audio
+            var playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.error("Autoplay Blocked by OBS:", e);
+                    // If blocked, wait 5 seconds then close
+                    setTimeout(() => finishAlert(box), 5000);
+                });
+            }
+        }
+
+        function finishAlert(box) {
+            setTimeout(() => { 
+                box.classList.remove('show'); 
+                setTimeout(() => { 
+                    isPlaying = false; 
+                    processQueue(); 
+                }, 1000); 
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
