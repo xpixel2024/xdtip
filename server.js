@@ -100,45 +100,37 @@ app.get("/:username", async (req, res) => {
   }
 });
 
+// ===================
+// OBS OVERLAY SYSTEM
+// ===================
 app.get('/overlay/:token', async (req, res) => {
-  try {
     const { token } = req.params;
+    
+    try {
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('overlay_theme, username')
+            .eq('obs_token', token)
+            .single();
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('overlay_theme')
-      .eq('obs_token', token)
-      .single();
+        if (error || !user) {
+            return res.status(404).send("INVALID OBS TOKEN");
+        }
 
-    let fileToSend = 'alert_basic.html'; // default
+        // Determine which file to send (Make sure these exist in your public folder!)
+        let fileToSend = 'alert.html'; 
+        if (user.overlay_theme === 'neon') fileToSend = 'alert_neon.html';
+        if (user.overlay_theme === 'minimal') fileToSend = 'alert_minimal.html';
+        if (user.overlay_theme === 'vip') fileToSend = 'alert_vip.html';
+        if (user.overlay_theme === 'basic') fileToSend = 'alert_basic.html';
+        if (user.overlay_theme === 'frost') fileToSend = 'alert_frost.html';
 
-    if (user) {
-      if (user.overlay_theme === 'neon') fileToSend = 'alert_neon.html';
-      if (user.overlay_theme === 'minimal') fileToSend = 'alert_minimal.html';
-      if (user.overlay_theme === 'vip') fileToSend = 'alert_vip.html';
-      if (user.overlay_theme === 'basic') fileToSend = 'alert_basic.html';
-      if (user.overlay_theme === 'frost') fileToSend = 'alert_frost.html';
+        res.sendFile(path.join(__dirname, 'public', fileToSend));
+
+    } catch (err) {
+        console.error("Overlay Error:", err);
+        res.status(500).send("SERVER ERROR");
     }
-
-    res.sendFile(path.join(__dirname, 'public', fileToSend));
-
-  } catch (err) {
-    console.error(err);
-    res.send("Overlay error");
-  }
-});
-
-app.get("/api/get-user-by-token/:token", async (req, res) => {
-
-  const { token } = req.params;
-
-  const { data } = await supabase
-    .from("users")
-    .select("id")
-    .eq("obs_token", token)
-    .single();
-
-  res.json(data);
 });
 
 // ===================
