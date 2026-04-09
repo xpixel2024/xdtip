@@ -186,7 +186,7 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
   </div>
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
-    <button class="btn green">TEST ALERT</button>
+    <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
     <button class="btn red">REPLAY LAST</button>
   </div>
 </div>
@@ -523,6 +523,35 @@ async function logout() {
 
 // 🔥 START THE SYSTEM
 init();
+
+// Trigger the Test Alert via backend
+async function sendTestAlert() {
+  try {
+    // Assuming you store your Express JWT token in localStorage as 'token'
+    const token = localStorage.getItem('token'); 
+    
+    const response = await fetch('http://localhost:3000/test-alert', { // <-- Change to your live URL if hosted
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` 
+      },
+      body: JSON.stringify({
+        tipper: "System Test",
+        amount: 99,
+        message: "Audio and visuals are perfectly synced!"
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      console.log("Test Alert Fired!");
+    }
+  } catch (err) {
+    console.error("Failed to send test alert:", err);
+  }
+}
+  
 </script>
 
 <div class="footer">
