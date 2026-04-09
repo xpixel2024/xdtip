@@ -3,10 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>FROST Stats - Animated Border</title>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap');
         
+        /* --- FONT SETUP (ABSOLUTE PATHS FIXED) --- */
+        @font-face {
+            font-family: 'Conthey';
+            src: url('https://xdtip.in/Conthey-Medium-Nar-3.woff2') format('woff2'),
+                 url('https://xdtip.in/Conthey-Medium-Nar-3.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+
         body { 
             margin: 0; padding: 20px; 
             overflow: hidden; 
@@ -30,7 +41,7 @@
             display: flex;
             align-items: center;
             padding: 0 20px;
-            overflow: hidden; /* This clips the rotating light to the edges */
+            overflow: hidden; 
             box-shadow: 0 10px 20px rgba(0,0,0,0.3);
         }
 
@@ -39,7 +50,7 @@
             content: '';
             position: absolute;
             width: 150%;
-            height: 400%; /* Height ensures it covers the wide bar while rotating */
+            height: 400%; 
             background: conic-gradient(
                 transparent, 
                 transparent, 
@@ -53,17 +64,16 @@
             left: -25%;
         }
 
-        /* The Inner Face (Masks the center so only the edge looks like a border) */
+        /* The Inner Face */
         .stat-bar::after {
             content: '';
             position: absolute;
-            inset: 3px; /* Controls border thickness */
+            inset: 3px; 
             background: #000;
             border-radius: 8px;
             z-index: 1;
         }
 
-        /* Border Rotation Animation */
         @keyframes rotateBorder {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
@@ -72,7 +82,7 @@
         /* --- CONTENT WRAPPER --- */
         .bar-content {
             position: relative;
-            z-index: 10; /* Keeps text above the animated border */
+            z-index: 10; 
             display: flex;
             width: 100%;
             justify-content: space-between;
@@ -82,7 +92,7 @@
         .label-text {
             font-size: 18px;
             font-weight: 700;
-            color: #A9A9A9; /* Grey */
+            color: #A9A9A9; 
             text-transform: uppercase;
             letter-spacing: 1px;
         }
@@ -90,14 +100,14 @@
         .value-text {
             font-size: 22px;
             font-weight: 900;
-            color: #4D4DFF; /* Neon Green */
+            color: #4D4DFF; /* Neon Blue/Green */
             text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
             text-transform: uppercase;
         }
 
         .crown { font-size: 22px; margin-left: 8px; }
 
-        /* Glossy Highlight on top of bar */
+        /* Glossy Highlight */
         .gloss {
             position: absolute;
             top: 3px; left: 8px; right: 8px; height: 40%;
@@ -142,60 +152,106 @@
     </div>
 
     <script>
-        var socket = io(); 
+        // 1. SUPABASE OBS FIX: disable 'persistSession'
+        const client = window.supabase.createClient(
+            "https://yohrquotbdmsxfeyxtqr.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM",
+            { auth: { persistSession: false } }
+        );
+
         var topTippers = [];
+        var recentTippers = [];
         var currentIndex = 0;
+        var myUsername = "";
         
         var pathParts = window.location.pathname.split('/');
-        var uuid = pathParts[pathParts.length - 1]; 
+        var token = pathParts[pathParts.length - 1]; 
 
-        if (uuid) {
-            socket.emit('join-overlay', uuid);
-            fetchStats();
+        async function initStats() {
+            if (!token) return;
+
+            // Get the username for this token to use in the Realtime listener
+            const { data: user } = await client.from('users').select('username').eq('obs_token', token).single();
+            if (!user) return;
+            
+            myUsername = user.username;
+
+            // Fetch initial data
+            await fetchStats();
+
+            // Set up Supabase Realtime Listener
+            client
+                .channel('stats-room')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${myUsername}` },
+                    (payload) => {
+                        console.log("New tip detected! Updating stats...");
+                        // Add a small delay so the stats update slightly after the main alert pops up
+                        setTimeout(() => fetchStats(), 2000);
+                    }
+                )
+                .subscribe();
         }
 
         async function fetchStats() {
             try {
-                const res = await fetch(`/stats/${uuid}`);
+                const res = await fetch(`/stats/${token}`);
                 const data = await res.json();
-                topTippers = data.top; 
+                
+                topTippers = data.top || []; 
+                recentTippers = data.latest || []; // FIX: Now correctly uses the latest tips for the bottom bar
+                
                 updateDisplay();
-            } catch(e) { console.error("Stats Error:", e); }
+            } catch(e) { 
+                console.error("Stats Error:", e); 
+            }
         }
 
         function updateDisplay() {
+            // Update #1 Tipper
             if (!topTippers || topTippers.length === 0) {
                 document.getElementById('top-one-name').innerText = "NO DATA";
+            } else {
+                var numberOne = topTippers[0];
+                document.getElementById('top-one-name').innerText = `${numberOne.sender_name} - ₹${numberOne.amount}`;
+            }
+
+            // Handle Recent Tippers Rotation
+            if (!recentTippers || recentTippers.length === 0) {
                 document.getElementById('rotating-text').innerText = "BE THE FIRST!";
                 return;
             }
 
-            var numberOne = topTippers[0];
-            document.getElementById('top-one-name').innerText = `${numberOne.sender_name} - ₹${numberOne.amount}`;
-
             if (window.rotatorInterval) clearInterval(window.rotatorInterval);
+            
+            // Instantly show the first recent tip, then start rotating
+            currentIndex = 0;
             rotateBottomBar();
             window.rotatorInterval = setInterval(rotateBottomBar, 4000); 
         }
 
         function rotateBottomBar() {
-            if (topTippers.length === 0) return;
+            if (recentTippers.length === 0) return;
+            
             var el = document.getElementById('rotating-text');
             
             el.classList.remove('fade-in');
             el.classList.add('fade-out');
 
             setTimeout(() => {
-                var tipper = topTippers[currentIndex];
+                var tipper = recentTippers[currentIndex];
                 el.innerText = `${tipper.sender_name} - ₹${tipper.amount}`;
+                
                 el.classList.remove('fade-out');
                 el.classList.add('fade-in');
 
-                currentIndex = (currentIndex + 1) % topTippers.length;
-            }, 600);
+                currentIndex = (currentIndex + 1) % recentTippers.length;
+            }, 600); // Wait for fade out to finish before changing text
         }
 
-        socket.on('new-tip', () => fetchStats());
+        // Boot up the system
+        initStats();
     </script>
 </body>
 </html>
