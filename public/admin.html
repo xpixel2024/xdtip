@@ -141,9 +141,10 @@
                 document.getElementById('stat-fraud').innerText = data.fraudCount;
 
                 // Populate Users & KYC (Updated for Text Column)
+                // Populate Users & KYC (Checks for lowercase 'true')
                 const usersHtml = data.users.map(u => {
-                    // Since it's text, we check if it says Verified (or true if you typed that previously)
-                    const isVerified = (u.kyc === 'Verified' || u.kyc === 'Approved' || u.kyc === 'true');
+                    // Strictly checks if the database says 'true'
+                    const isVerified = (u.kyc === 'true');
                     const currentStatusText = u.kyc || 'Pending';
 
                     return `
