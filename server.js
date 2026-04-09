@@ -358,14 +358,34 @@ app.post('/api/admin/data', async (req, res) => {
     }
 });
 
-// 3. KYC Approval Route (Updated for 'kyc' Text Column)
+// 3. KYC Approval Route (Updated with Bulletproof Email Check)
 app.post('/api/admin/approve-kyc', async (req, res) => {
     const { email, targetUsername } = req.body;
-    const ADMIN_EMAIL = "bkonai00@gmail.com"; // 🔒 CHANGE TO YOUR EMAIL
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
 
-    if (!email || email !== ADMIN_EMAIL) {
+    // 🔥 FIX: Force both to lowercase and remove hidden spaces
+    const safeInputEmail = (email || "").toLowerCase().trim();
+    const safeAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
+
+    if (!safeInputEmail || safeInputEmail !== safeAdminEmail) {
         return res.status(403).json({ error: "Access Denied." });
     }
+
+    try {
+        // Explicitly save the lowercase text 'true'
+        const { error } = await supabase
+            .from('users')
+            .update({ kyc: 'true' }) 
+            .eq('username', targetUsername);
+
+        if (error) throw error;
+
+        res.json({ success: true, message: `${targetUsername} KYC is now true!` });
+    } catch (err) {
+        console.error("KYC Error:", err);
+        res.status(500).json({ error: "Failed to approve KYC" });
+    }
+});
 
     try {
         // Update the user's existing 'kyc' text column to say "Verified"
