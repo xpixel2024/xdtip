@@ -320,33 +320,25 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// 2. Secure Admin Data API
+// 2. Secure Admin Data API (Upgraded with Fraud Detection)
 app.post('/api/admin/data', async (req, res) => {
     const { email } = req.body;
-
-    // 🔒 SECURITY CHECK: Replace this with YOUR actual Supabase login email!
-    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
+    const ADMIN_EMAIL = "your_email@gmail.com"; // 🔒 CHANGE TO YOUR EMAIL
 
     if (!email || email !== ADMIN_EMAIL) {
-        return res.status(403).json({ error: "Access Denied. Admins only." });
+        return res.status(403).json({ error: "Access Denied." });
     }
 
     try {
-        // Fetch ALL Users
-        const { data: users, error: userErr } = await supabase
-            .from('users')
-            .select('*')
-            .order('created_at', { ascending: false });
+        // Fetch Users (Now includes KYC status)
+        const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false });
 
         // Fetch ALL Tips
-        const { data: tips, error: tipErr } = await supabase
-            .from('tips')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const { data: tips } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
 
-        if (userErr || tipErr) throw new Error("Database error");
+        // 🚨 FRAUD DETECTION LOGIC: Automatically flag tips over ₹5,000
+        const fraudLogs = tips.filter(tip => parseFloat(tip.amount) >= 5000);
 
-        // Calculate Total Platform Revenue
         const totalRevenue = tips.reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
 
         res.json({
@@ -354,16 +346,41 @@ app.post('/api/admin/data', async (req, res) => {
             totalUsers: users.length,
             totalTips: tips.length,
             totalRevenue: totalRevenue,
+            fraudCount: fraudLogs.length,
             users: users,
-            tips: tips
+            tips: tips,
+            fraudLogs: fraudLogs
         });
-
     } catch (err) {
         console.error("Admin API Error:", err);
         res.status(500).json({ error: "Server Error" });
     }
 });
 
+// 3. KYC Approval Route
+app.post('/api/admin/approve-kyc', async (req, res) => {
+    const { email, targetUsername } = req.body;
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; // 🔒 CHANGE TO YOUR EMAIL
+
+    if (!email || email !== ADMIN_EMAIL) {
+        return res.status(403).json({ error: "Access Denied." });
+    }
+
+    try {
+        // Update the user's KYC status to TRUE
+        const { error } = await supabase
+            .from('users')
+            .update({ kyc_verified: true })
+            .eq('username', targetUsername);
+
+        if (error) throw error;
+
+        res.json({ success: true, message: `${targetUsername} is now KYC Verified!` });
+    } catch (err) {
+        console.error("KYC Error:", err);
+        res.status(500).json({ error: "Failed to approve KYC" });
+    }
+});
 // ===================
 // START SERVER
 // ===================
