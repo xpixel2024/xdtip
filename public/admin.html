@@ -149,15 +149,28 @@
                 document.getElementById('stat-fraud').innerText = data.fraudCount;
 
                 // Populate Users & KYC (Updated for Text Column)
-                // Populate Users & KYC (Checks for lowercase 'true')
+                // Populate Users & KYC (Upgraded with Full Details)
                 const usersHtml = data.users.map(u => {
-                    // Strictly checks if the database says 'true'
-                    const isVerified = (u.kyc === 'true');
+                    const isVerified = (u.kyc === 'true'); 
                     const currentStatusText = u.kyc || 'Pending';
+
+                    // 1. Safe Fallbacks (In case they haven't submitted KYC yet)
+                    const fullName = u.full_name || '<span style="color:#64748b; font-size:12px; font-style:italic;">Not provided</span>';
+                    const upiId = u.upi_id || '<span style="color:#64748b; font-size:12px; font-style:italic;">Not provided</span>';
+                    
+                    // 2. Clickable Image Link for PAN Photo
+                    let panPhotoHtml = '<span style="color:#64748b; font-size:12px; font-style:italic;">No photo</span>';
+                    if (u.pan_photo) {
+                        // Opens the image in a safe, new tab
+                        panPhotoHtml = `<a href="${u.pan_photo}" target="_blank" style="color:#38bdf8; text-decoration:none; font-weight:bold;">🖼️ View PAN</a>`;
+                    }
 
                     return `
                     <tr>
                         <td style="font-weight:bold; color:#fff;">${u.username}</td>
+                        <td style="color:#cbd5e1;">${fullName}</td>
+                        <td style="color:#a855f7; font-family:monospace;">${upiId}</td>
+                        <td>${panPhotoHtml}</td>
                         <td>${new Date(u.created_at).toLocaleDateString()}</td>
                         <td>${isVerified 
                             ? '<span class="badge verified">✓ Verified</span>' 
