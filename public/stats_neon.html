@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Neon Stats</title>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&display=swap');
         
@@ -58,82 +60,138 @@
             </div>
             <span id="rotator-amount" class="tipper-amount">0</span>
         </div>
+        
         <div class="divider"></div>
+        
         <div class="label">INCOMING SIGNAL</div>
-        <ul id="latest-list" class="latest-list"></ul>
+        <ul id="latest-list" class="latest-list">
+            </ul>
     </div>
 
-   <script>
-        var socket = io(); 
-        var queue = []; 
-        var isPlaying = false;
+    <script>
+        // 1. SUPABASE OBS FIX: disable 'persistSession'
+        const client = window.supabase.createClient(
+            "https://yohrquotbdmsxfeyxtqr.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM",
+            { auth: { persistSession: false } }
+        );
 
-        // We don't need loadVoices anymore because we are fetching audio files now
+        var topTippers = [];
+        var latestTippers = [];
+        var currentIndex = 0;
+        var myUsername = "";
         
+        // 1. Get Token from URL
         var pathParts = window.location.pathname.split('/');
-        var uuid = pathParts[pathParts.length - 1]; 
-        if (!uuid) uuid = pathParts[pathParts.length - 2];
+        var token = pathParts[pathParts.length - 1]; 
 
-        if (uuid && uuid !== "overlay") { socket.emit('join-overlay', uuid); }
+        // 2. Initialize System
+        async function initStats() {
+            if (!token) return;
 
-        socket.on('new-tip', (data) => { queue.push(data); processQueue(); });
+            // Get the username for this token to use in the Realtime listener
+            const { data: user } = await client.from('users').select('username').eq('obs_token', token).single();
+            if (!user) return;
+            
+            myUsername = user.username;
 
-        function processQueue() {
-            if (isPlaying || queue.length === 0) return;
-            isPlaying = true;
-            var data = queue.shift();
-            showAlert(data);
+            // Fetch initial data
+            await fetchStats();
+
+            // Set up Supabase Realtime Listener
+            client
+                .channel('stats-room')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${myUsername}` },
+                    (payload) => {
+                        // Delay fetch by 2s so the alert pop-up plays first
+                        setTimeout(() => fetchStats(), 2000);
+                    }
+                )
+                .subscribe();
         }
 
-        function showAlert(data) {
-            var senderName = data.tipper || "Anonymous";
-            // Update Text
-            document.getElementById('sender').innerText = senderName;
-            document.getElementById('amount').innerText = "₹" + data.amount;
-            document.getElementById('message-text').innerText = `"${data.message}"`;
-            
-            // Show Box
-            var box = document.getElementById('alert-box');
-            box.classList.add('show');
-
-            // --- THE NEW AUDIO LOGIC (OBS FRIENDLY) ---
-            
-            // 1. Prepare the text
-            var fullText = `${senderName} sent ${data.amount} rupees. ${data.message}`;
-            
-            // 2. Detect Language (Simple Check)
-            var hasHindiScript = /[\u0900-\u097F]/.test(data.message);
-            var lang = hasHindiScript ? 'hi' : 'en'; // 'hi' for Hindi, 'en' for English
-            
-            // 3. Create the Google Translate TTS URL
-            // Note: We limit text to 200 chars to avoid API errors on this free hack
-            var safeText = encodeURIComponent(fullText.substring(0, 200)); 
-            var audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${lang}&q=${safeText}`;
-
-            // 4. Play it as an Audio Object (This is what OBS can hear!)
-            var audio = new Audio(audioUrl);
-            
-            audio.onended = () => finishAlert(box);
-            audio.onerror = () => {
-                console.error("Audio failed to load.");
-                finishAlert(box); // Close anyway if audio fails
-            };
-
-            audio.play().catch(e => {
-                console.error("Autoplay blocked or error:", e);
-                finishAlert(box);
-            });
+        // 3. Fetch API Data
+        async function fetchStats() {
+            try {
+                const res = await fetch(`/stats/${token}`);
+                const data = await res.json();
+                
+                topTippers = data.top || []; 
+                latestTippers = data.latest || [];
+                
+                updateDisplay();
+            } catch(e) { 
+                console.error("Stats Error:", e); 
+            }
         }
 
-        function finishAlert(box) {
-            setTimeout(() => { 
-                box.classList.remove('show'); 
-                setTimeout(() => { 
-                    isPlaying = false; 
-                    processQueue(); 
-                }, 1000); 
-            }, 2000);
+        // 4. Update the UI
+        function updateDisplay() {
+            // A. UPDATE LATEST TIPS LIST (Bottom section)
+            const listEl = document.getElementById('latest-list');
+            listEl.innerHTML = ''; // Clear current list
+            
+            if (latestTippers.length === 0) {
+                listEl.innerHTML = '<li class="latest-item">NO SIGNALS DETECTED</li>';
+            } else {
+                latestTippers.forEach(tip => {
+                    listEl.innerHTML += `
+                        <li class="latest-item">
+                            <span>${tip.sender_name}</span> 
+                            <span class="latest-amt">₹${tip.amount}</span>
+                        </li>
+                    `;
+                });
+            }
+
+            // B. START TOP COMMANDERS ROTATION
+            if (!topTippers || topTippers.length === 0) {
+                document.getElementById('rotator-name').innerText = "NO DATA";
+                document.getElementById('rotator-amount').innerText = "₹0";
+                document.getElementById('rotator-name').classList.add('visible');
+                document.getElementById('rotator-amount').classList.add('visible');
+                return;
+            }
+
+            if (window.rotatorInterval) clearInterval(window.rotatorInterval);
+            
+            currentIndex = 0;
+            rotateTopBar(); // Run once instantly
+            window.rotatorInterval = setInterval(rotateTopBar, 4000); // Swap every 4s
         }
+
+        // 5. Rotation Animation Logic
+        function rotateTopBar() {
+            if (topTippers.length === 0) return;
+
+            const nameEl = document.getElementById('rotator-name');
+            const amtEl = document.getElementById('rotator-amount');
+            const rankEl = document.getElementById('rank');
+
+            // Fade Out
+            nameEl.classList.remove('visible');
+            amtEl.classList.remove('visible');
+
+            setTimeout(() => {
+                // Change Data
+                var tipper = topTippers[currentIndex];
+                rankEl.innerText = '#' + (currentIndex + 1);
+                nameEl.innerText = tipper.sender_name;
+                amtEl.innerText = `₹${tipper.amount}`;
+                
+                // Fade In
+                nameEl.classList.add('visible');
+                amtEl.classList.add('visible');
+
+                // Move to next person
+                currentIndex = (currentIndex + 1) % topTippers.length;
+            }, 300); // 0.3s wait to match CSS transition time
+        }
+
+        // Boot
+        initStats();
     </script>
 </body>
 </html>
