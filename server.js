@@ -325,7 +325,7 @@ app.post('/api/admin/data', async (req, res) => {
     const { email } = req.body;
 
     // 🔒 SECURITY CHECK: Replace this with YOUR actual Supabase login email!
-    const ADMIN_EMAIL = "your_email@gmail.com"; 
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
 
     if (!email || email !== ADMIN_EMAIL) {
         return res.status(403).json({ error: "Access Denied. Admins only." });
