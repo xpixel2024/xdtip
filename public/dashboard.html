@@ -254,7 +254,16 @@ async function init() {
 
   userId = user.id;
 
-  setVal("alertLink", `https://xdtip.in/alert/${userId}`);
+  setVal("alertLink", `setText("balance", "₹" + (profile.balance || 0));
+
+      // 🔥 FIXED: Generate links using the correct data
+      setVal("statsLink", `https://xdtip.in/alert/${profile.obs_token}`);
+      
+      if (profile.obs_token) {
+        setVal("alertLink", `https://xdtip.in/alert/${profile.obs_token}`);
+      } else {
+        setVal("alertLink", "NO_TOKEN_FOUND_IN_DB");
+      }${userId}`);
   setVal("statsLink", `https://xdtip.in/stats/${userId}`);
 
   try {
