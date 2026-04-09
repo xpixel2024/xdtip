@@ -321,43 +321,54 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// 2. Secure Admin Data API (Updated with Signed URLs for Privacy)
+// 2. Secure Admin Data API (Robust Signed URL Version)
 app.post('/api/admin/data', async (req, res) => {
-    // ... [Your existing email check code here] ...
+    const { email } = req.body;
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
+
+    const safeInputEmail = (email || "").toLowerCase().trim();
+    const safeAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
+
+    if (!safeInputEmail || safeInputEmail !== safeAdminEmail) {
+        return res.status(403).json({ error: "Access Denied." });
+    }
 
     try {
         const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false });
         const { data: tips } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
 
-        // 🔥 NEW: Generate Signed URLs for Private PAN Photos
-        // We map through the users and create a 15-minute link for each PAN
-        const usersWithSignedUrls = await Promise.all(users.map(async (u) => {
+        // 🔥 IMPROVED: Generate Signed URLs
+        const usersWithSignedUrls = await Promise.all((users || []).map(async (u) => {
             if (u.pan_url) {
-                // Extracts the filename from the path if it's a full URL
-                const fileName = u.pan_url.split('/').pop();
+                // Logic: Extract just the filename (e.g., pan_abc123.jpg) 
+                // regardless of whether the DB has a full URL or just a name.
+                const pathParts = u.pan_url.split('/');
+                const fileName = pathParts[pathParts.length - 1];
 
-                const { data: signedData } = await supabase
+                const { data: signedData, error: signedError } = await supabase
                     .storage
                     .from('kyc_docs')
-                    .createSignedUrl(fileName, 900); // 900 seconds = 15 minutes
+                    .createSignedUrl(fileName, 900); 
 
-                return { ...u, pan_url: signedData ? signedData.signedUrl : null };
+                if (signedError) {
+                    console.error(`Error signing URL for ${fileName}:`, signedError.message);
+                    return { ...u, pan_url: null };
+                }
+
+                return { ...u, pan_url: signedData.signedUrl };
             }
             return u;
         }));
 
-        const fraudLogs = (tips || []).filter(tip => parseFloat(tip.amount) >= 5000);
-        const totalRevenue = (tips || []).reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
-
         res.json({
             success: true,
             totalUsers: users.length,
-            totalTips: tips.length,
-            totalRevenue: totalRevenue,
-            fraudCount: fraudLogs.length,
-            users: usersWithSignedUrls, // Send the version with temporary links
+            totalTips: tips ? tips.length : 0,
+            totalRevenue: (tips || []).reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0),
+            fraudCount: (tips || []).filter(tip => parseFloat(tip.amount) >= 5000).length,
+            users: usersWithSignedUrls,
             tips: tips || [],
-            fraudLogs: fraudLogs
+            fraudLogs: (tips || []).filter(tip => parseFloat(tip.amount) >= 5000)
         });
     } catch (err) {
         console.error("Admin API Error:", err);
