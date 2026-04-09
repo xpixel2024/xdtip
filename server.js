@@ -357,7 +357,7 @@ app.post('/api/admin/data', async (req, res) => {
     }
 });
 
-// 3. KYC Approval Route
+// 3. KYC Approval Route (Updated for 'kyc' Text Column)
 app.post('/api/admin/approve-kyc', async (req, res) => {
     const { email, targetUsername } = req.body;
     const ADMIN_EMAIL = "bkonai00@gmail.com"; // 🔒 CHANGE TO YOUR EMAIL
@@ -367,10 +367,10 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
     }
 
     try {
-        // Update the user's KYC status to TRUE
+        // Update the user's existing 'kyc' text column to say "Verified"
         const { error } = await supabase
             .from('users')
-            .update({ kyc_verified: true })
+            .update({ kyc: 'Verified' }) 
             .eq('username', targetUsername);
 
         if (error) throw error;
