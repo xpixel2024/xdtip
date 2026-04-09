@@ -321,35 +321,39 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// 2. Secure Admin Data API (Upgraded with Fraud Detection)
+// 2. Secure Admin Data API (Upgraded with Fraud Detection & Bulletproof Email)
 app.post('/api/admin/data', async (req, res) => {
     const { email } = req.body;
-    const ADMIN_EMAIL = "your_email@gmail.com"; // 🔒 CHANGE TO YOUR EMAIL
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
 
-    if (!email || email !== ADMIN_EMAIL) {
+    // 🔥 FIX: Force both to lowercase and remove hidden spaces
+    const safeInputEmail = (email || "").toLowerCase().trim();
+    const safeAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
+
+    if (!safeInputEmail || safeInputEmail !== safeAdminEmail) {
         return res.status(403).json({ error: "Access Denied." });
     }
 
     try {
-        // Fetch Users (Now includes KYC status)
+        // Fetch Users
         const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false });
 
         // Fetch ALL Tips
         const { data: tips } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
 
         // 🚨 FRAUD DETECTION LOGIC: Automatically flag tips over ₹5,000
-        const fraudLogs = tips.filter(tip => parseFloat(tip.amount) >= 5000);
+        const fraudLogs = (tips || []).filter(tip => parseFloat(tip.amount) >= 5000);
 
-        const totalRevenue = tips.reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
+        const totalRevenue = (tips || []).reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
 
         res.json({
             success: true,
-            totalUsers: users.length,
-            totalTips: tips.length,
+            totalUsers: users ? users.length : 0,
+            totalTips: tips ? tips.length : 0,
             totalRevenue: totalRevenue,
             fraudCount: fraudLogs.length,
-            users: users,
-            tips: tips,
+            users: users || [],
+            tips: tips || [],
             fraudLogs: fraudLogs
         });
     } catch (err) {
@@ -358,7 +362,7 @@ app.post('/api/admin/data', async (req, res) => {
     }
 });
 
-// 3. KYC Approval Route (Updated with Bulletproof Email Check)
+// 3. KYC Approval Route (Bulletproof Email Check + lowercase 'true')
 app.post('/api/admin/approve-kyc', async (req, res) => {
     const { email, targetUsername } = req.body;
     const ADMIN_EMAIL = "bkonai00@gmail.com"; 
@@ -380,23 +384,7 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
 
         if (error) throw error;
 
-        res.json({ success: true, message: `${targetUsername} KYC is now true!` });
-    } catch (err) {
-        console.error("KYC Error:", err);
-        res.status(500).json({ error: "Failed to approve KYC" });
-    }
-});
-
-    try {
-        // Update the user's existing 'kyc' text column to say "Verified"
-        const { error } = await supabase
-            .from('users')
-            .update({ kyc: 'true' }) 
-            .eq('username', targetUsername);
-
-        if (error) throw error;
-
-        res.json({ success: true, message: `${targetUsername} is now KYC Verified!` });
+        res.json({ success: true, message: `${targetUsername} KYC is now verified!` });
     } catch (err) {
         console.error("KYC Error:", err);
         res.status(500).json({ error: "Failed to approve KYC" });
