@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="referrer" content="no-referrer">
     <title>Neon Overlay</title>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Hind:wght@600&display=swap');
@@ -37,17 +39,51 @@
     </div>
 
     <script>
-        var socket = io(); 
+        // 1. SUPABASE OBS FIX: disable 'persistSession'
+        const client = window.supabase.createClient(
+            "https://yohrquotbdmsxfeyxtqr.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM",
+            { auth: { persistSession: false } }
+        );
+
         var queue = []; 
         var isPlaying = false;
 
         var pathParts = window.location.pathname.split('/');
-        var uuid = pathParts[pathParts.length - 1]; 
-        if (!uuid) uuid = pathParts[pathParts.length - 2];
+        var token = pathParts[pathParts.length - 1]; 
+        if (!token) token = pathParts[pathParts.length - 2];
 
-        if (uuid && uuid !== "overlay") { socket.emit('join-overlay', uuid); }
+        async function initAlerts() {
+            const { data: user, error } = await client
+                .from('users')
+                .select('username')
+                .eq('obs_token', token)
+                .single();
 
-        socket.on('new-tip', (data) => { queue.push(data); processQueue(); });
+            if (error || !user) {
+                console.error("OVERLAY ERROR: Invalid OBS Token");
+                return;
+            }
+
+            console.log("📡 Neon Overlay Connected to OBS. Awaiting Tips for:", user.username);
+
+            client
+                .channel('public:tips')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${user.username}` },
+                    (payload) => {
+                        const newTipData = {
+                            tipper: payload.new.sender_name,
+                            amount: payload.new.amount,
+                            message: payload.new.message
+                        };
+                        queue.push(newTipData); 
+                        processQueue();
+                    }
+                )
+                .subscribe();
+        }
 
         function processQueue() {
             if (isPlaying || queue.length === 0) return;
@@ -69,48 +105,34 @@
             var box = document.getElementById('alert-box');
             box.classList.add('show');
 
-            // --- FIXED ROBUST TTS LOGIC ---
-            
-            // 1. Prepare Text
+            // --- STREAM-ELEMENTS TTS (OBS Safe) ---
             var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
+            var safeText = encodeURIComponent(fullText.substring(0, 200));
             
-            // 2. Detect Language
+            // Auto-detect Hindi vs English to pick the right voice
             var hasHindiScript = /[\u0900-\u097F]/.test(fullText);
-            var lang = hasHindiScript ? 'hi' : 'en'; 
+            var voice = hasHindiScript ? 'Aditi' : 'Brian'; 
             
-            // 3. Robust URL Generation (Prevents 403 Blocking)
-            // We use 'idx=0', 'total=1', and 'client=tw-ob' to look like a real browser
-            var safeText = encodeURIComponent(fullText.substring(0, 200)); 
-            var audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=${lang}&total=1&idx=0&textlen=${safeText.length}&client=tw-ob&prev=input&ttsspeed=1`;
-
+            var audioUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${safeText}`;
+            
             var audio = new Audio(audioUrl);
-            
-            // 4. Events
-            audio.onended = () => finishAlert(box);
-            
-            // Safety: If audio fails/blocks, close box after 5s anyway
-            audio.onerror = () => {
-                console.error("Audio failed to load (Check OBS/Network)");
-                setTimeout(() => finishAlert(box), 5000); 
-            };
+            audio.volume = 1.0;
 
-            // Play
-            audio.play().catch(e => {
-                console.error("Autoplay blocked:", e);
-                // If blocked, wait 5s then close
-                setTimeout(() => finishAlert(box), 5000);
-            });
+            audio.onended = () => finishAlert(box);
+            audio.onerror = () => { setTimeout(() => finishAlert(box), 5000); };
+
+            audio.play().catch(e => { setTimeout(() => finishAlert(box), 5000); });
         }
 
         function finishAlert(box) {
+            box.classList.remove('show'); 
             setTimeout(() => { 
-                box.classList.remove('show'); 
-                setTimeout(() => { 
-                    isPlaying = false; 
-                    processQueue(); 
-                }, 1000); 
-            }, 2000);
+                isPlaying = false; 
+                processQueue(); 
+            }, 1000); 
         }
+
+        initAlerts();
     </script>
 </body>
 </html>
