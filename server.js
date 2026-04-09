@@ -101,9 +101,9 @@ app.get("/:username", async (req, res) => {
 });
 
 // ===================
-// OBS OVERLAY SYSTEM
+// OBS ALERT SYSTEM
 // ===================
-app.get('/overlay/:token', async (req, res) => {
+app.get('/alert/:token', async (req, res) => {
     const { token } = req.params;
     
     try {
@@ -117,7 +117,7 @@ app.get('/overlay/:token', async (req, res) => {
             return res.status(404).send("INVALID OBS TOKEN");
         }
 
-        // Determine which file to send (Make sure these exist in your public folder!)
+        // Determine which file to send based on theme
         let fileToSend = 'alert.html'; 
         if (user.overlay_theme === 'neon') fileToSend = 'alert_neon.html';
         if (user.overlay_theme === 'minimal') fileToSend = 'alert_minimal.html';
