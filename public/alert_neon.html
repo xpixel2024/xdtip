@@ -65,17 +65,18 @@
                 return;
             }
 
-            console.log("📡 Connected to OBS. Awaiting Tips for:", user.username);
+            console.log("📡 FROST Connected to OBS. Awaiting Tips for:", user.username);
 
             client
-                // 🔥 1. Change the channel name to match the server
+                // Channel name matches the server broadcast room
                 .channel(`alert-room-${user.username.toLowerCase()}`)
                 
-                // 🔥 2. Listener for REAL MONEY (Database)
+                // Listener for REAL MONEY (Database)
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${user.username}` },
                     (payload) => {
+                        console.log("💰 REAL TIP RECEIVED:", payload.new);
                         queue.push({
                             tipper: payload.new.sender_name,
                             amount: payload.new.amount,
@@ -85,18 +86,29 @@
                     }
                 )
                 
-                // 🔥 3. Listener for TEST ALERTS (Walkie-Talkie)
+                // Listener for TEST ALERTS (Walkie-Talkie)
                 .on(
                     'broadcast',
                     { event: 'test-tip' },
                     (payload) => {
-                        // Push the fake alert data straight into the animation queue!
-                        queue.push(payload.payload); 
+                        console.log("🛠️ TEST TIP RECEIVED:", payload);
+                        
+                        // Safely unpack the payload whether it's nested or not
+                        let alertData = payload.payload || payload;
+                        
+                        queue.push({
+                            tipper: alertData.tipper || "System",
+                            amount: alertData.amount || 0,
+                            message: alertData.message || "Test Successful!"
+                        }); 
                         processQueue();
                     }
                 )
-                .subscribe();
+                .subscribe((status) => {
+                    console.log("Supabase Connection Status:", status);
+                });
         }
+
         function processQueue() {
             if (isPlaying || queue.length === 0) return;
             isPlaying = true;
@@ -107,37 +119,62 @@
         function showAlert(data) {
             var senderName = data.tipper || "Anonymous";
             var messageText = data.message || "Thank you for the support!";
-            
-            // Update Text
+
+            // Update Text Safely
             if(document.getElementById('sender')) document.getElementById('sender').innerText = senderName;
             if(document.getElementById('amount')) document.getElementById('amount').innerText = "₹" + data.amount;
             if(document.getElementById('message-text')) document.getElementById('message-text').innerText = `"${messageText}"`;
             
             // Show Box
             var box = document.getElementById('alert-box');
-            box.classList.add('show');
+            if(box) box.classList.add('show');
 
-            // --- STREAM-ELEMENTS TTS (OBS Safe) ---
+            // --- DUAL-ENGINE TTS SYSTEM ---
             var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
             var safeText = encodeURIComponent(fullText.substring(0, 200));
             
-            // Auto-detect Hindi vs English to pick the right voice
             var hasHindiScript = /[\u0900-\u097F]/.test(fullText);
-            var voice = hasHindiScript ? 'Aditi' : 'Brian'; 
+            var seVoice = hasHindiScript ? 'Aditi' : 'Brian'; 
+            var googleLang = hasHindiScript ? 'hi' : 'en';
             
-            var audioUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${safeText}`;
+            // Engine 1: StreamElements (High Quality)
+            var seAudioUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${seVoice}&text=${safeText}`;
+            // Engine 2: Google Translate (Bulletproof Fallback)
+            var googleAudioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${safeText}&tl=${googleLang}&client=tw-ob`;
             
-            var audio = new Audio(audioUrl);
+            var audio = new Audio(seAudioUrl);
             audio.volume = 1.0;
 
             audio.onended = () => finishAlert(box);
-            audio.onerror = () => { setTimeout(() => finishAlert(box), 5000); };
+            
+            // If StreamElements fails, immediately try Google
+            audio.onerror = (e) => { 
+                console.warn("⚠️ StreamElements TTS Failed. Falling back to Google TTS...");
+                
+                var backupAudio = new Audio(googleAudioUrl);
+                backupAudio.onended = () => finishAlert(box);
+                backupAudio.onerror = () => {
+                    console.error("❌ Both TTS Engines Failed.");
+                    setTimeout(() => finishAlert(box), 5000);
+                };
+                
+                backupAudio.play().catch(err => {
+                    console.error("Autoplay Blocked on Backup Audio:", err);
+                    setTimeout(() => finishAlert(box), 5000);
+                });
+            };
 
-            audio.play().catch(e => { setTimeout(() => finishAlert(box), 5000); });
+            var playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => { 
+                    console.error("Autoplay blocked! (Click the screen if testing in Chrome)", e);
+                    setTimeout(() => finishAlert(box), 5000); 
+                });
+            }
         }
 
         function finishAlert(box) {
-            box.classList.remove('show'); 
+            if(box) box.classList.remove('show'); 
             setTimeout(() => { 
                 isPlaying = false; 
                 processQueue(); 
