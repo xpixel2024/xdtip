@@ -140,21 +140,27 @@
                 document.getElementById('stat-revenue').innerText = "₹" + data.totalRevenue.toLocaleString('en-IN');
                 document.getElementById('stat-fraud').innerText = data.fraudCount;
 
-                // Populate Users & KYC
-                const usersHtml = data.users.map(u => `
+                // Populate Users & KYC (Updated for Text Column)
+                const usersHtml = data.users.map(u => {
+                    // Since it's text, we check if it says Verified (or true if you typed that previously)
+                    const isVerified = (u.kyc === 'Verified' || u.kyc === 'Approved' || u.kyc === 'true');
+                    const currentStatusText = u.kyc || 'Pending';
+
+                    return `
                     <tr>
                         <td style="font-weight:bold; color:#fff;">${u.username}</td>
                         <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                        <td>${u.kyc_verified 
+                        <td>${isVerified 
                             ? '<span class="badge verified">✓ Verified</span>' 
-                            : '<span class="badge pending">Pending</span>'}
+                            : `<span class="badge pending">${currentStatusText}</span>`}
                         </td>
-                        <td>${!u.kyc_verified 
+                        <td>${!isVerified 
                             ? `<button class="btn-approve" onclick="approveKYC('${u.username}')">Approve KYC</button>` 
                             : '<span style="color:#64748b;">Completed</span>'}
                         </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
                 document.getElementById('users-tbody').innerHTML = usersHtml;
 
                 // Populate Transactions
