@@ -173,6 +173,64 @@ app.post('/test-alert', async (req, res) => {
     res.json({ success: true, message: "Test Alert Broadcasted!" });
 });
 
+// ==========================
+// N. REPLAY LAST ALERT (Supabase Broadcast)
+// ==========================
+app.post('/replay-alert', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ error: "Username is required" });
+    }
+
+    try {
+        // 1. Fetch the actual LAST tip from Supabase history for this user
+        const { data: lastTip, error } = await supabase
+            .from('tips')
+            .select('sender_name, amount, message')
+            .eq('username', username) // Matches the creator's username
+            .order('created_at', { ascending: false }) // Get newest first
+            .limit(1) // Only get one
+            .single();
+
+        if (error || !lastTip) {
+            return res.status(404).json({ success: false, message: "No recent tips found in history." });
+        }
+
+        // 2. Prepare Alert Data
+        const alertData = {
+            tipper: lastTip.sender_name || "Anonymous",
+            amount: lastTip.amount,
+            message: lastTip.message
+        };
+
+        // 3. Connect to this specific user's walkie-talkie channel
+        const roomName = `alert-room-${username.toLowerCase()}`;
+        const channel = supabase.channel(roomName);
+
+        // 4. Subscribe, Broadcast the real tip, and disconnect
+        channel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'test-tip', // We reuse the 'test-tip' listener on the overlay so it plays instantly
+                    payload: alertData
+                });
+                
+                // Instantly delete the channel connection so the server doesn't lag
+                supabase.removeChannel(channel);
+            }
+        });
+
+        console.log(`↺ Replayed last tip for ${username}: ₹${alertData.amount} from ${alertData.tipper}`);
+        res.json({ success: true, message: "Last tip replayed successfully!" });
+
+    } catch (err) {
+        console.error("Replay Error:", err);
+        res.status(500).json({ success: false, error: "Server Error during replay" });
+    }
+});
+
 // ===================
 // START SERVER
 // ===================
