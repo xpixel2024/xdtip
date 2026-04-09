@@ -370,7 +370,7 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
         // Update the user's existing 'kyc' text column to say "Verified"
         const { error } = await supabase
             .from('users')
-            .update({ kyc: 'Verified' }) 
+            .update({ kyc: 'true' }) 
             .eq('username', targetUsername);
 
         if (error) throw error;
