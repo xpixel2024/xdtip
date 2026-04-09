@@ -133,6 +133,44 @@ app.get('/alert/:token', async (req, res) => {
     }
 });
 
+// ==========================
+// M. TEST ALERT (Supabase Broadcast)
+// ==========================
+app.post('/test-alert', authenticateToken, async (req, res) => {
+    const username = req.user.username;
+    
+    // 1. Check if the dashboard sent specific data (for Replay)
+    const { tipper, amount, message } = req.body;
+
+    // 2. Use that data, OR fallback to "Test Bot" if empty
+    const alertData = {
+        tipper: tipper || "Test Commander",
+        amount: amount || 69,
+        message: message || "System uplink successful! 🚀"
+    };
+
+    // 3. Connect to this specific user's walkie-talkie channel
+    const roomName = `alert-room-${username.toLowerCase()}`;
+    const channel = supabase.channel(roomName);
+    
+    // 4. Subscribe, Broadcast the fake tip, and disconnect
+    channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+            await channel.send({
+                type: 'broadcast',
+                event: 'test-tip',
+                payload: alertData
+            });
+            
+            // Instantly delete the channel connection so the server doesn't lag
+            supabase.removeChannel(channel);
+        }
+    });
+
+    console.log(`📡 Broadcast sent to OBS for ${username}: ${alertData.tipper}`);
+    res.json({ success: true, message: "Test Alert Broadcasted!" });
+});
+
 // ===================
 // START SERVER
 // ===================
