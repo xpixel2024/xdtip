@@ -311,6 +311,59 @@ app.get('/stats-overlay/:token', async (req, res) => {
     }
 });
 
+// ==========================
+// ADMIN PANEL ROUTES
+// ==========================
+
+// 1. Serve the Admin HTML Page
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/admin.html'));
+});
+
+// 2. Secure Admin Data API
+app.post('/api/admin/data', async (req, res) => {
+    const { email } = req.body;
+
+    // 🔒 SECURITY CHECK: Replace this with YOUR actual Supabase login email!
+    const ADMIN_EMAIL = "your_email@gmail.com"; 
+
+    if (!email || email !== ADMIN_EMAIL) {
+        return res.status(403).json({ error: "Access Denied. Admins only." });
+    }
+
+    try {
+        // Fetch ALL Users
+        const { data: users, error: userErr } = await supabase
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        // Fetch ALL Tips
+        const { data: tips, error: tipErr } = await supabase
+            .from('tips')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (userErr || tipErr) throw new Error("Database error");
+
+        // Calculate Total Platform Revenue
+        const totalRevenue = tips.reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
+
+        res.json({
+            success: true,
+            totalUsers: users.length,
+            totalTips: tips.length,
+            totalRevenue: totalRevenue,
+            users: users,
+            tips: tips
+        });
+
+    } catch (err) {
+        console.error("Admin API Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
 // ===================
 // START SERVER
 // ===================
