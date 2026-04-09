@@ -243,6 +243,74 @@ app.post('/replay-alert', async (req, res) => {
     }
 });
 
+// ==========================
+// H. STATS API (Data Fetcher)
+// ==========================
+app.get('/stats/:token', async (req, res) => {
+    const { token } = req.params;
+    try {
+        // 1. Find the username attached to this OBS token
+        const { data: user, error: userErr } = await supabase
+            .from('users')
+            .select('username')
+            .eq('obs_token', token)
+            .single();
+
+        if (userErr || !user) return res.status(404).json({ error: "User not found" });
+
+        // 2. Fetch Latest 3 Tips (using username, not receiver_id)
+        const { data: latest } = await supabase
+            .from('tips')
+            .select('sender_name, amount')
+            .ilike('username', user.username) // Safe case-insensitive match
+            .order('created_at', { ascending: false })
+            .limit(3);
+
+        // 3. Fetch Top 3 Tips
+        const { data: top } = await supabase
+            .from('tips')
+            .select('sender_name, amount')
+            .ilike('username', user.username)
+            .order('amount', { ascending: false })
+            .limit(3);
+
+        res.json({ top: top || [], latest: latest || [] });
+    } catch (err) {
+        console.error("Stats API Error:", err);
+        res.status(500).json({ error: "Stats failed" });
+    }
+});
+
+// ==========================
+// S. SERVE STATS OVERLAY
+// ==========================
+app.get('/stats-overlay/:token', async (req, res) => {
+    const { token } = req.params;
+    
+    try {
+        const { data: user } = await supabase
+            .from('users')
+            .select('overlay_theme')
+            .eq('obs_token', token)
+            .single();
+
+        let fileToSend = 'stats.html'; 
+        if (user && user.overlay_theme) {
+            if (user.overlay_theme === 'neon') fileToSend = 'stats_neon.html';
+            if (user.overlay_theme === 'minimal') fileToSend = 'stats_minimal.html';
+            if (user.overlay_theme === 'vip') fileToSend = 'stats_vip.html';
+            if (user.overlay_theme === 'basic') fileToSend = 'stats_basic.html';
+            if (user.overlay_theme === 'frost') fileToSend = 'stats_frost.html';
+        }
+        
+        // FIX: Must include the 'public' folder in the path!
+        res.sendFile(path.join(__dirname, 'public', fileToSend));
+    } catch (err) {
+        console.error("Serve Stats Error:", err);
+        res.status(500).send("Error loading stats overlay.");
+    }
+});
+
 // ===================
 // START SERVER
 // ===================
