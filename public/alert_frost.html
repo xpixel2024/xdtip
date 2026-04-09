@@ -8,11 +8,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* --- FONT SETUP --- */
+        /* --- FONT SETUP (FIXED 404 PATHS) --- */
         @font-face {
             font-family: 'Conthey';
-            src: url('Conthey-Medium-Nar-3.woff2') format('woff2'),
-                 url('Conthey-Medium-Nar-3.ttf') format('truetype');
+            src: url('/Conthey-Medium-Nar-3.woff2') format('woff2'),
+                 url('/Conthey-Medium-Nar-3.ttf') format('truetype');
             font-weight: 600;
             font-style: normal;
         }
@@ -51,21 +51,15 @@
         
         #alert-box.show { opacity: 1; transform: scale(1); }
         
-        /* --- GIF STYLE (Full, No Round Border) --- */
-        .alert-image { 
-            /* Adjustable size - keeps aspect ratio */
+        /* --- GIF/VIDEO STYLE --- */
+        .alert-video { 
             height: 150px; 
             width: auto; 
-            
-            /* REMOVED CIRCLE & BORDER */
             border-radius: 0; 
             border: none;
-            
-            /* Shadow to make the GIF pop */
             filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
-            
             margin-bottom: 10px;
-            object-fit: contain; /* Shows full image */
+            object-fit: contain; 
         }
 
         /* --- TYPOGRAPHY --- */
@@ -84,13 +78,12 @@
             text-shadow: 2px 2px 4px #000, 0 0 10px rgba(0,0,0,0.8);
         }
         
-        /* 1. USER: Neon Red */
+        /* 1. USER: Neon Gold */
         #sender { 
             color: #FFD700; 
             font-size: 48px;
             display: block;
             margin-bottom: 0px;
-            /* Neon Glow + Black Outline */
             text-shadow: 0 0 20px #FFFACD, 3px 3px 0 #000;
         } 
         
@@ -103,12 +96,11 @@
             text-shadow: 2px 2px 0 #000;
         }
         
-        /* 2. AMOUNT: Bright Green */
+        /* 2. AMOUNT: Bright Yellow */
         #amount { 
             color: #FFFACD; 
             font-size: 55px; 
             display: inline-block;
-            /* Neon Glow + Black Outline */
             text-shadow: 0 0 20px #FFD700, 3px 3px 0 #000;
         }
         
@@ -118,7 +110,6 @@
             color: #FFFFFF; 
             margin-top: 15px; 
             font-weight: normal; 
-            /* Heavy Shadow for visibility */
             text-shadow: 2px 2px 4px #000, 0 0 10px #000;
             max-width: 600px;
             line-height: 1.4;
@@ -170,13 +161,13 @@
                 return;
             }
 
-            console.log("📡 Connected to OBS. Awaiting Tips for:", user.username);
+            console.log("📡 FROST Connected to OBS. Awaiting Tips for:", user.username);
 
             client
-                // 🔥 1. Change the channel name to match the server
+                // Channel name matches the server broadcast room
                 .channel(`alert-room-${user.username.toLowerCase()}`)
                 
-                // 🔥 2. Listener for REAL MONEY (Database)
+                // Listener for REAL MONEY (Database)
                 .on(
                     'postgres_changes',
                     { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${user.username}` },
@@ -190,12 +181,11 @@
                     }
                 )
                 
-                // 🔥 3. Listener for TEST ALERTS (Walkie-Talkie)
+                // Listener for TEST ALERTS (Walkie-Talkie)
                 .on(
                     'broadcast',
                     { event: 'test-tip' },
                     (payload) => {
-                        // Push the fake alert data straight into the animation queue!
                         queue.push(payload.payload); 
                         processQueue();
                     }
@@ -214,14 +204,14 @@
             var senderName = data.tipper || "Anonymous";
             var messageText = data.message || "Thank you for the support!";
 
-            // Update Text
-            document.getElementById('sender').innerText = senderName;
-            document.getElementById('amount').innerText = "₹" + data.amount;
-            document.getElementById('message-text').innerText = `"${messageText}"`;
+            // Update Text Safely
+            if(document.getElementById('sender')) document.getElementById('sender').innerText = senderName;
+            if(document.getElementById('amount')) document.getElementById('amount').innerText = "₹" + data.amount;
+            if(document.getElementById('message-text')) document.getElementById('message-text').innerText = `"${messageText}"`;
             
             // Show Box
             var box = document.getElementById('alert-box');
-            box.classList.add('show');
+            if(box) box.classList.add('show');
 
             // --- STREAM-ELEMENTS TTS (OBS Safe) ---
             var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
@@ -237,13 +227,22 @@
             audio.volume = 1.0;
 
             audio.onended = () => finishAlert(box);
-            audio.onerror = () => { setTimeout(() => finishAlert(box), 5000); };
+            audio.onerror = (e) => { 
+                console.error("Audio failed to load:", e);
+                setTimeout(() => finishAlert(box), 5000); 
+            };
 
-            audio.play().catch(e => { setTimeout(() => finishAlert(box), 5000); });
+            var playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => { 
+                    console.error("Autoplay blocked! Click the screen if testing in Chrome.", e);
+                    setTimeout(() => finishAlert(box), 5000); 
+                });
+            }
         }
 
         function finishAlert(box) {
-            box.classList.remove('show'); 
+            if(box) box.classList.remove('show'); 
             setTimeout(() => { 
                 isPlaying = false; 
                 processQueue(); 
