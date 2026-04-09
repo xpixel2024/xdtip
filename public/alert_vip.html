@@ -51,9 +51,11 @@
     </div>
 
     <script>
+        // 🔥 FIX 1: Disabled persistSession so OBS doesn't crash
         const client = window.supabase.createClient(
             "https://yohrquotbdmsxfeyxtqr.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM",
+            { auth: { persistSession: false } } 
         );
 
         var queue = []; 
@@ -75,7 +77,7 @@
                 return;
             }
 
-            console.log("📡 VIP Connected. Awaiting Tips for:", user.username);
+            console.log("📡 VIP Connected to OBS. Awaiting Tips for:", user.username);
 
             client
                 .channel('public:tips')
@@ -114,38 +116,23 @@
             var box = document.getElementById('alert-box');
             box.classList.add('show');
 
-            // --- BULLETPROOF NATIVE TTS SCRIPT ---
+            // 🔥 FIX 2: StreamElements TTS API (100% OBS Safe)
             var fullText = `${senderName} sent ${data.amount} rupees. ${messageText}`;
+            var safeText = encodeURIComponent(fullText.substring(0, 200));
             
-            // Cancel any currently playing speech to prevent overlap
-            window.speechSynthesis.cancel();
-
-            var utterance = new SpeechSynthesisUtterance(fullText);
-            
-            // Detect Language
+            // Auto-detect Hindi vs English to pick the right voice
             var hasHindiScript = /[\u0900-\u097F]/.test(fullText);
-            utterance.lang = hasHindiScript ? 'hi-IN' : 'en-US';
-            utterance.rate = 1.0; // Normal speed
-            utterance.volume = 1.0; // Max volume
-
-            // When the voice finishes speaking, remove the alert
-            utterance.onend = function() {
-                finishAlert(box);
-            };
-
-            // Safety Fallback: If TTS crashes, close box after 6 seconds anyway
-            utterance.onerror = function(e) {
-                console.error("Native TTS Error:", e);
-                setTimeout(() => finishAlert(box), 6000);
-            };
-
-            // Speak the text
-            window.speechSynthesis.speak(utterance);
+            var voice = hasHindiScript ? 'Aditi' : 'Brian'; 
             
-            // Extra Safety: In case speech engine hangs, force close after 12 seconds max
-            setTimeout(() => {
-                if (isPlaying) finishAlert(box);
-            }, 12000);
+            var audioUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${safeText}`;
+            
+            var audio = new Audio(audioUrl);
+            audio.volume = 1.0;
+
+            audio.onended = () => finishAlert(box);
+            audio.onerror = () => { setTimeout(() => finishAlert(box), 5000); };
+
+            audio.play().catch(e => { setTimeout(() => finishAlert(box), 5000); });
         }
 
         function finishAlert(box) {
