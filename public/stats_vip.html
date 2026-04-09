@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>VIP Gold Stats</title>
-    <script src="/socket.io/socket.io.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&display=swap');
         
@@ -96,56 +98,90 @@
     </div>
 
     <script>
-        var socket = io(); 
+        // 1. SUPABASE OBS FIX: disable 'persistSession'
+        const client = window.supabase.createClient(
+            "https://yohrquotbdmsxfeyxtqr.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM",
+            { auth: { persistSession: false } }
+        );
+
         var topTippers = [];
+        var recentTippers = [];
         var currentIndex = 0;
+        var myUsername = "";
         
         // 1. Get Token from URL
         var pathParts = window.location.pathname.split('/');
-        var uuid = pathParts[pathParts.length - 1]; 
+        var token = pathParts[pathParts.length - 1]; 
 
-        // 2. Connect
-        if (uuid) {
-            socket.emit('join-overlay', uuid);
-            fetchStats();
+        // 2. Initialize System
+        async function initStats() {
+            if (!token) return;
+
+            // Get the username for this token to use in the Realtime listener
+            const { data: user } = await client.from('users').select('username').eq('obs_token', token).single();
+            if (!user) return;
+            
+            myUsername = user.username;
+
+            // Fetch initial data
+            await fetchStats();
+
+            // Set up Supabase Realtime Listener
+            client
+                .channel('stats-room')
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'tips', filter: `username=eq.${myUsername}` },
+                    (payload) => {
+                        // Delay fetch by 2s so the alert pop-up plays first
+                        setTimeout(() => fetchStats(), 2000);
+                    }
+                )
+                .subscribe();
         }
 
         // 3. Fetch Data from Server
         async function fetchStats() {
             try {
-                const res = await fetch(`/stats/${uuid}`);
+                const res = await fetch(`/stats/${token}`);
                 const data = await res.json();
-                topTippers = data.top; 
+                
+                topTippers = data.top || []; 
+                recentTippers = data.latest || []; // FIX: Use the latest tips array for bottom rotation
+                
                 updateDisplay();
             } catch(e) { console.error("Stats Error:", e); }
         }
 
         // 4. Update the UI
         function updateDisplay() {
-            // Safety Check: If no data
+            // A. SET TOP BAR (Fixed #1)
             if (!topTippers || topTippers.length === 0) {
                 document.getElementById('top-one-name').innerText = "NO ONE YET";
+            } else {
+                var numberOne = topTippers[0];
+                var topText = `${numberOne.sender_name} - ₹${numberOne.amount}`;
+                document.getElementById('top-one-name').innerText = topText;
+            }
+
+            // B. START BOTTOM BAR ROTATION (Recent Tips)
+            if (!recentTippers || recentTippers.length === 0) {
                 document.getElementById('rotating-text').innerText = "BE THE FIRST!";
                 return;
             }
 
-            // A. SET TOP BAR (Fixed #1)
-            // Shows: "NAME - ₹AMOUNT"
-            var numberOne = topTippers[0];
-            var topText = `${numberOne.sender_name} - ₹${numberOne.amount}`;
-            document.getElementById('top-one-name').innerText = topText;
-
-            // B. START BOTTOM BAR ROTATION
             // Ensure we don't start multiple intervals
             if (window.rotatorInterval) clearInterval(window.rotatorInterval);
             
+            currentIndex = 0;
             rotateBottomBar(); // Run once immediately
             window.rotatorInterval = setInterval(rotateBottomBar, 3000); // Rotate every 3s
         }
 
         // 5. Rotation Logic
         function rotateBottomBar() {
-            if (topTippers.length === 0) return;
+            if (recentTippers.length === 0) return;
 
             var el = document.getElementById('rotating-text');
             
@@ -155,7 +191,7 @@
 
             setTimeout(() => {
                 // Change Text
-                var tipper = topTippers[currentIndex];
+                var tipper = recentTippers[currentIndex];
                 el.innerText = `${tipper.sender_name} - ₹${tipper.amount}`;
                 
                 // Fade In
@@ -164,16 +200,13 @@
 
                 // Move to next person
                 currentIndex++;
-                if (currentIndex >= topTippers.length) currentIndex = 0;
+                if (currentIndex >= recentTippers.length) currentIndex = 0;
 
             }, 500); // 0.5s wait for fade out
         }
 
-        // 6. Listen for New Tips
-        socket.on('new-tip', () => {
-            fetchStats(); // Refresh data instantly
-        });
-
+        // Boot
+        initStats();
     </script>
 </body>
 </html>
