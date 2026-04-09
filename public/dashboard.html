@@ -556,6 +556,41 @@ async function logout() {
 
 // 🔥 START THE SYSTEM
 init();
+
+  // Trigger the Replay Alert via backend (Tracker Version)
+async function replayLastAlert() {
+  console.log("1. Replay button clicked!");
+  
+  if (!currentUsername) {
+    console.error("ERROR: currentUsername is empty!");
+    alert("SYSTEM ALERT: Your profile is initializing. Please wait.");
+    return;
+  }
+  
+  console.log("2. Sending request to server for username:", currentUsername);
+
+  try {
+    const response = await fetch('/replay-alert', { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: currentUsername })
+    });
+    
+    console.log("3. Server responded with status:", response.status);
+    
+    const data = await response.json();
+    console.log("4. Server data received:", data);
+    
+    if (data.success) {
+      console.log("5. Replay Alert Fired successfully to OBS!");
+    } else {
+      alert("SERVER SAID: " + data.message); 
+    }
+  } catch (err) {
+    console.error("FATAL ERROR during fetch:", err);
+    alert("Network error. Is the server online?");
+  }
+}
   
 </script>
 
