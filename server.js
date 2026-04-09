@@ -321,38 +321,41 @@ app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/admin.html'));
 });
 
-// 2. Secure Admin Data API (Upgraded with Fraud Detection & Bulletproof Email)
+// 2. Secure Admin Data API (Updated with Signed URLs for Privacy)
 app.post('/api/admin/data', async (req, res) => {
-    const { email } = req.body;
-    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
-
-    // 🔥 FIX: Force both to lowercase and remove hidden spaces
-    const safeInputEmail = (email || "").toLowerCase().trim();
-    const safeAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
-
-    if (!safeInputEmail || safeInputEmail !== safeAdminEmail) {
-        return res.status(403).json({ error: "Access Denied." });
-    }
+    // ... [Your existing email check code here] ...
 
     try {
-        // Fetch Users
         const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false });
-
-        // Fetch ALL Tips
         const { data: tips } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
 
-        // 🚨 FRAUD DETECTION LOGIC: Automatically flag tips over ₹5,000
-        const fraudLogs = (tips || []).filter(tip => parseFloat(tip.amount) >= 5000);
+        // 🔥 NEW: Generate Signed URLs for Private PAN Photos
+        // We map through the users and create a 15-minute link for each PAN
+        const usersWithSignedUrls = await Promise.all(users.map(async (u) => {
+            if (u.pan_url) {
+                // Extracts the filename from the path if it's a full URL
+                const fileName = u.pan_url.split('/').pop();
 
+                const { data: signedData } = await supabase
+                    .storage
+                    .from('kyc_docs')
+                    .createSignedUrl(fileName, 900); // 900 seconds = 15 minutes
+
+                return { ...u, pan_url: signedData ? signedData.signedUrl : null };
+            }
+            return u;
+        }));
+
+        const fraudLogs = (tips || []).filter(tip => parseFloat(tip.amount) >= 5000);
         const totalRevenue = (tips || []).reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0);
 
         res.json({
             success: true,
-            totalUsers: users ? users.length : 0,
-            totalTips: tips ? tips.length : 0,
+            totalUsers: users.length,
+            totalTips: tips.length,
             totalRevenue: totalRevenue,
             fraudCount: fraudLogs.length,
-            users: users || [],
+            users: usersWithSignedUrls, // Send the version with temporary links
             tips: tips || [],
             fraudLogs: fraudLogs
         });
