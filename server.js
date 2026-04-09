@@ -128,6 +128,19 @@ app.get('/overlay/:token', async (req, res) => {
   }
 });
 
+app.get("/api/get-user-by-token/:token", async (req, res) => {
+
+  const { token } = req.params;
+
+  const { data } = await supabase
+    .from("users")
+    .select("id")
+    .eq("obs_token", token)
+    .single();
+
+  res.json(data);
+});
+
 // ===================
 // START SERVER
 // ===================
