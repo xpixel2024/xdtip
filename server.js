@@ -133,16 +133,18 @@ app.get('/alert/:token', async (req, res) => {
     }
 });
 
-// ==========================
+/// ==========================
 // M. TEST ALERT (Supabase Broadcast)
 // ==========================
-app.post('/test-alert', authenticateToken, async (req, res) => {
-    const username = req.user.username;
-    
-    // 1. Check if the dashboard sent specific data (for Replay)
-    const { tipper, amount, message } = req.body;
+app.post('/test-alert', async (req, res) => {
+    // 1. Grab the username and fake tip data from the dashboard
+    const { username, tipper, amount, message } = req.body;
 
-    // 2. Use that data, OR fallback to "Test Bot" if empty
+    if (!username) {
+        return res.status(400).json({ error: "Username is required" });
+    }
+
+    // 2. Use that data, OR fallback to default test text
     const alertData = {
         tipper: tipper || "Test Commander",
         amount: amount || 69,
