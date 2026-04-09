@@ -100,6 +100,34 @@ app.get("/:username", async (req, res) => {
   }
 });
 
+app.get('/overlay/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('overlay_theme')
+      .eq('obs_token', token)
+      .single();
+
+    let fileToSend = 'alert_basic.html'; // default
+
+    if (user) {
+      if (user.overlay_theme === 'neon') fileToSend = 'alert_neon.html';
+      if (user.overlay_theme === 'minimal') fileToSend = 'alert_minimal.html';
+      if (user.overlay_theme === 'vip') fileToSend = 'alert_vip.html';
+      if (user.overlay_theme === 'basic') fileToSend = 'alert_basic.html';
+      if (user.overlay_theme === 'frost') fileToSend = 'alert_frost.html';
+    }
+
+    res.sendFile(path.join(__dirname, 'public', fileToSend));
+
+  } catch (err) {
+    console.error(err);
+    res.send("Overlay error");
+  }
+});
+
 // ===================
 // START SERVER
 // ===================
