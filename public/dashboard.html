@@ -8,121 +8,237 @@
 
 <style>
 :root {
-  --neon-cyan: #00f3ff;
-  --neon-magenta: #ff00ea;
-  --bg-dark: #03040b;
-  --panel-bg: rgba(5, 8, 20, 0.85);
-  --grid-color: rgba(0, 243, 255, 0.05);
+  /* Premium Sci-Fi Palette */
+  --core-cyan: #00e5ff;
+  --core-cyan-dim: rgba(0, 229, 255, 0.15);
+  --core-amber: #ffab00;
+  --core-amber-dim: rgba(255, 171, 0, 0.15);
+  
+  --bg-void: #02050f;
+  --panel-bg: rgba(10, 14, 25, 0.65);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  
+  --text-main: #e2e8f0;
+  --text-muted: #64748b;
 }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--core-cyan-dim); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--core-cyan); }
 
 body {
   margin: 0;
   font-family: 'Rajdhani', sans-serif;
-  background-color: var(--bg-dark);
-  color: #c8d3f5;
+  background-color: var(--bg-void);
+  color: var(--text-main);
   overflow-x: hidden;
 }
 
-/* CRT Scanlines and Grid Background */
-.bgfx {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-  background-image: 
-    linear-gradient(var(--grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-  background-size: 40px 40px;
+/* Atmospheric Background */
+.bg-grid {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+  background-image: radial-gradient(rgba(0, 229, 255, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.bg-glow {
+  position: fixed; top: -20%; left: 50%; transform: translateX(-50%);
+  width: 70vw; height: 70vw; z-index: -1;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  animation: breathe 8s infinite alternate ease-in-out;
+}
+@keyframes breathe {
+  0% { transform: translateX(-50%) scale(1); opacity: 0.8; }
+  100% { transform: translateX(-50%) scale(1.05); opacity: 1; }
 }
 
-.bgfx::after {
-  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  background-size: 100% 4px, 3px 100%; pointer-events: none;
-}
-
-/* TOP NAV */
+/* TOP NAV - Sleek & Corporate */
 .nav {
   display: flex; justify-content: space-between; align-items: center; padding: 0 40px;
-  background: rgba(0, 0, 0, 0.9); border-bottom: 2px solid var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); height: 70px;
+  background: rgba(2, 5, 15, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--core-cyan-dim);
+  height: 70px;
+  position: relative;
 }
-.nav-brand { font-size: 26px; font-weight: 700; letter-spacing: 2px; color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+.nav::after {
+  content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--core-cyan), transparent);
+  opacity: 0.5;
+}
+.nav-brand { 
+  font-family: 'Share Tech Mono', monospace; font-size: 24px; font-weight: 700; 
+  letter-spacing: 3px; color: #fff; text-shadow: 0 0 15px var(--core-cyan-dim); 
+}
+.nav-brand span { color: var(--core-cyan); }
 .nav-links { display: flex; height: 100%; }
-.nav-links a { display: flex; align-items: center; padding: 0 25px; color: #7b8ebd; text-decoration: none; font-family: 'Share Tech Mono', monospace; font-size: 15px; text-transform: uppercase; transition: 0.3s; border-bottom: 2px solid transparent; }
-.nav-links a:hover, .nav-links a.active { color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); border-bottom: 2px solid var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+.nav-links a { 
+  display: flex; align-items: center; padding: 0 30px; color: var(--text-muted); 
+  text-decoration: none; font-weight: 600; font-size: 15px; letter-spacing: 1px;
+  text-transform: uppercase; transition: all 0.3s; position: relative; 
+}
+.nav-links a::before {
+  content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 0; height: 2px; background: var(--core-cyan); transition: width 0.3s ease;
+}
+.nav-links a:hover, .nav-links a.active { color: #fff; }
+.nav-links a:hover::before, .nav-links a.active::before { width: 100%; box-shadow: 0 -2px 10px var(--core-cyan); }
 .nav-actions { display: flex; align-items: center; }
 
-/* PROFILE */
-.profile { text-align: center; padding: 40px; position: relative; }
-.avatar { width: 130px; height: 130px; margin: auto; background: #111; background-size: cover; background-position: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); position: relative; z-index: 2; }
-.avatar-wrapper { position: relative; width: 140px; height: 140px; margin: auto; display: flex; justify-content: center; align-items: center; background: var(--neon-cyan); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); box-shadow: 0 0 20px var(--neon-cyan); }
-.username { font-size: 32px; font-weight: 700; margin-top: 15px; color: #fff; text-shadow: 0 0 10px var(--neon-cyan); letter-spacing: 2px; }
+/* PROFILE SECTION */
+.profile { text-align: center; padding: 50px 20px; position: relative; }
+.avatar-wrapper { 
+  position: relative; width: 150px; height: 150px; margin: auto; 
+  display: flex; justify-content: center; align-items: center; 
+  background: transparent;
+  border: 1px solid var(--core-cyan-dim);
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  box-shadow: inset 0 0 30px var(--core-cyan-dim);
+  transition: all 0.5s ease;
+}
+.avatar-wrapper:hover { box-shadow: inset 0 0 50px rgba(0, 229, 255, 0.4); }
+.avatar { 
+  width: 138px; height: 138px; background: #0a0f1d; background-size: cover; background-position: center; 
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); 
+}
+.username { font-size: 36px; font-weight: 700; margin-top: 20px; color: #fff; letter-spacing: 3px; }
 
-/* INPUTS */
-input { padding: 12px; background: rgba(0, 0, 0, 0.6); border: 1px solid #333; border-left: 3px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; margin-top: 10px; border-radius: 0; outline: none; transition: 0.3s; }
-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
-input[type="file"] { font-family: 'Rajdhani', sans-serif; color: #fff; }
-.file-label { display: block; text-align: left; margin-left: 5%; margin-top: 10px; margin-bottom: -5px; font-family: 'Share Tech Mono', monospace; color: var(--neon-magenta); font-size: 12px; }
+/* HIGH-TECH INPUTS */
+.input-group { margin: 15px auto; max-width: 300px; text-align: left; position: relative; }
+.input-group::before { content: '>'; position: absolute; left: 12px; top: 14px; color: var(--core-cyan); font-family: 'Share Tech Mono'; font-weight: bold; }
+input { 
+  width: 100%; box-sizing: border-box; padding: 12px 12px 12px 30px; 
+  background: rgba(0, 0, 0, 0.4); border: 1px solid var(--panel-border); 
+  border-bottom: 2px solid var(--core-cyan-dim); color: #fff; 
+  font-family: 'Share Tech Mono', monospace; font-size: 14px; 
+  outline: none; transition: all 0.3s; 
+}
+input:focus { border-bottom-color: var(--core-cyan); background: rgba(0, 229, 255, 0.05); }
+input[type="file"] { padding: 10px; font-family: 'Rajdhani', sans-serif; color: var(--text-muted); background: transparent; border: 1px dashed var(--core-cyan-dim); }
+input[type="file"]::before { content: none; }
+.file-label { display: block; font-family: 'Share Tech Mono', monospace; color: var(--text-muted); font-size: 11px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
 
-/* BUTTONS */
-.btn { padding: 10px 20px; border: none; cursor: pointer; margin-top: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; position: relative; overflow: hidden; transition: 0.2s; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
-.green { background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2); }
-.green:hover:not(:disabled) { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
-.red { background: transparent; color: var(--neon-magenta); border: 1px solid var(--neon-magenta); box-shadow: inset 0 0 10px rgba(255, 0, 234, 0.2); }
-.red:hover:not(:disabled) { background: var(--neon-magenta); color: #000; box-shadow: 0 0 15px var(--neon-magenta); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+/* HOLOGRAPHIC BUTTONS */
+.btn { 
+  padding: 12px 28px; border: 1px solid transparent; cursor: pointer; 
+  font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 15px; 
+  text-transform: uppercase; letter-spacing: 2px; position: relative; 
+  background: rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(4px);
+}
+.btn::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; transition: all 0.3s; }
+.green { color: var(--core-cyan); border-color: var(--core-cyan-dim); }
+.green:hover:not(:disabled) { 
+  background: var(--core-cyan-dim); color: #fff; border-color: var(--core-cyan); 
+  box-shadow: 0 0 20px var(--core-cyan-dim); letter-spacing: 3px; 
+}
+.red { color: var(--core-amber); border-color: var(--core-amber-dim); }
+.red:hover:not(:disabled) { 
+  background: var(--core-amber-dim); color: #fff; border-color: var(--core-amber); 
+  box-shadow: 0 0 20px var(--core-amber-dim); letter-spacing: 3px; 
+}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; border-style: dashed; }
 
-/* LAYOUT & CARDS */
-.section { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-.card { background: var(--panel-bg); border: 1px solid rgba(0, 243, 255, 0.15); padding: 25px; backdrop-filter: blur(10px); position: relative; }
-.card::before, .card::after { content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--neon-cyan); transition: 0.3s; }
-.card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-.card:hover::before, .card:hover::after { width: 30px; height: 30px; }
+/* PREMIUM CARDS (GLASSMORPHISM + TARGETING BRACKETS) */
+.section { max-width: 1150px; margin: 40px auto; padding: 0 20px; }
+.row { display: flex; gap: 30px; margin-bottom: 30px; flex-wrap: wrap; }
+.col { flex: 1; min-width: 300px; }
 
-h3 { margin-top: 0; color: #fff; font-weight: 600; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; text-transform: uppercase; }
-h2 { font-family: 'Share Tech Mono', monospace; font-size: 38px; color: var(--neon-cyan); margin: 10px 0; text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); }
+.card { 
+  background: var(--panel-bg); 
+  border: 1px solid var(--panel-border); 
+  padding: 30px; 
+  backdrop-filter: blur(16px) saturate(180%); 
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+/* Sci-Fi Corner Brackets */
+.card::before, .card::after { 
+  content: ''; position: absolute; width: 20px; height: 20px; 
+  border: 2px solid var(--core-cyan); opacity: 0.5; transition: 0.3s; 
+}
+.card::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.card::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+.card:hover::before, .card:hover::after { opacity: 1; width: 30px; height: 30px; }
 
-.row { display: flex; gap: 25px; margin-bottom: 25px;}
-.col { flex: 1; }
-.linkbox { display: flex; }
-.linkbox input { flex: 1; border-right: none; }
-.linkbox button { margin-left: 0; border-radius: 0; clip-path: none; }
+h3 { 
+  margin-top: 0; color: #fff; font-weight: 600; font-size: 16px; 
+  letter-spacing: 2px; padding-bottom: 12px; text-transform: uppercase; 
+  border-bottom: 1px solid var(--panel-border); display: flex; align-items: center;
+}
+h3::before { content: '■'; color: var(--core-cyan); margin-right: 10px; font-size: 12px; }
 
-/* TABLE */
-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 14px; }
-td, th { padding: 12px 8px; border-bottom: 1px solid rgba(0, 243, 255, 0.1); text-align: left; }
-th { color: var(--neon-magenta); font-family: 'Rajdhani', sans-serif; font-size: 16px; letter-spacing: 1px; }
-tr:hover { background: rgba(0, 243, 255, 0.05); }
+h2 { 
+  font-family: 'Share Tech Mono', monospace; font-size: 42px; 
+  color: #fff; margin: 15px 0 0 0; text-shadow: 0 0 20px var(--core-cyan-dim); 
+}
 
-/* LOADING ANIMATION */
-.loading { animation: pulse-glow 1.5s infinite; }
-@keyframes pulse-glow { 0% { opacity: 0.5; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 10px var(--neon-cyan); } 100% { opacity: 0.5; text-shadow: none; } }
+.linkbox { display: flex; margin-top: 15px; }
+.linkbox .input-group { margin: 0; flex: 1; max-width: none; }
+.linkbox input { border-right: none; height: 100%; }
+.linkbox button { margin-top: 0; border-left: none; }
 
-/* POPUP */
-.popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 5, 0.9); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 999; }
-.popup-box { background: var(--panel-bg); border: 1px solid var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); padding: 40px; width: 320px; text-align: center; position: relative; }
-.popup-box::before { content: 'SYSTEM OVERRIDE'; position: absolute; top: -10px; left: 20px; background: var(--bg-dark); padding: 0 10px; font-size: 12px; color: var(--neon-cyan); }
-.popup-box input { width: 90%; margin-bottom: 15px; }
+/* DATA TABLES */
+table { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-family: 'Share Tech Mono', monospace; font-size: 14px; }
+th { color: var(--text-muted); font-family: 'Rajdhani', sans-serif; font-size: 14px; letter-spacing: 1px; padding: 10px 15px; border-bottom: 1px solid var(--panel-border); }
+td { padding: 15px; background: rgba(0,0,0,0.2); transition: 0.2s; }
+tr:hover td { background: var(--core-cyan-dim); }
+tr td:first-child { border-left: 2px solid transparent; }
+tr:hover td:first-child { border-left: 2px solid var(--core-cyan); }
+
+/* SYSTEM STATUS / LOADING */
+.loading { position: relative; color: transparent !important; }
+.loading::after {
+  content: 'SCANNING...'; position: absolute; left: 0; top: 0;
+  color: var(--core-cyan); font-family: 'Share Tech Mono'; font-size: inherit;
+  animation: pulse-scan 1.5s infinite;
+}
+@keyframes pulse-scan { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; text-shadow: 0 0 8px var(--core-cyan); } }
+
+/* SECURE POPUP */
+.popup { 
+  position: fixed; inset: 0; background: rgba(2, 5, 15, 0.9); 
+  backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 999; 
+}
+.popup-box { 
+  background: var(--panel-bg); border: 1px solid var(--panel-border); 
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 0 1px var(--core-cyan-dim); 
+  padding: 40px; width: 380px; position: relative; 
+}
+.popup-box::before { 
+  content: 'SECURE UPLINK ESTABLISHED'; position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: var(--core-cyan); color: #000; padding: 2px 15px; font-size: 11px; font-weight: bold; font-family: 'Share Tech Mono'; letter-spacing: 1px;
+}
+.popup-box .input-group { max-width: 100%; }
 
 /* FOOTER */
-.footer { text-align: center; padding: 30px; border-top: 1px solid rgba(0, 243, 255, 0.2); background: rgba(0, 0, 0, 0.8); color: #55678a; font-family: 'Share Tech Mono', monospace; font-size: 14px; letter-spacing: 1px; margin-top: 40px; }
-.footer a { color: #55678a; text-decoration: none; transition: 0.3s; }
-.footer a:hover { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
+.footer { 
+  text-align: center; padding: 40px; border-top: 1px solid var(--panel-border); 
+  background: rgba(0,0,0,0.4); color: var(--text-muted); 
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 2px; margin-top: 60px; 
+}
+.footer a { color: var(--text-muted); text-decoration: none; transition: 0.3s; margin: 0 10px; }
+.footer a:hover { color: var(--core-cyan); }
 
 </style>
 </head>
 <body>
 
-<div class="bgfx"></div>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
 
 <div class="nav">
-  <div class="nav-brand">XD_TIP // SYS</div>
+  <div class="nav-brand">XD_<span>TIP</span></div>
   <div class="nav-links">
-    <a href="index">HOME</a>
-    <a href="dashboard" class="active">DASHBOARD</a>
-    <a href="learn">LEARN</a>
-    <a href="contact">CONTACT US</a>
+    <a href="index">Home</a>
+    <a href="dashboard" class="active">Dashboard</a>
+    <a href="learn">Intel</a>
+    <a href="contact">Comms</a>
   </div>
   <div class="nav-actions">
-    <button class="btn red" onclick="logout()">[ TERMINATE ]</button>
+    <button class="btn red" onclick="logout()">Terminate</button>
   </div>
 </div>
 
@@ -132,45 +248,53 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
   </div>
   <div class="username loading" id="username">INITIALIZING...</div>
 
-  <input id="nameInput" placeholder="> Enter Designation"><br>
-  <input type="file" id="logoUpload" accept="image/*" style="margin-top:15px; margin-bottom: 15px;"><br>
+  <div style="display:flex; flex-direction:column; align-items:center; margin-top: 20px;">
+    <div class="input-group">
+      <input id="nameInput" placeholder="Enter Designation">
+    </div>
+    
+    <div class="input-group" style="margin-top: 5px;">
+      <span class="file-label">Upload Insignia (Logo)</span>
+      <input type="file" id="logoUpload" accept="image/*">
+    </div>
 
-  <button class="btn green" id="uploadDataBtn" onclick="saveProfile()">UPLOAD DATA</button>
+    <button class="btn green" id="uploadDataBtn" onclick="saveProfile()" style="margin-top: 15px;">Sync Data</button>
+  </div>
 </div>
 
 <div class="section row">
   <div class="card col">
-    <h3>CREDITS</h3>
+    <h3>Available Credits</h3>
     <h2 id="balance" class="loading">₹--</h2>
   </div>
 
   <div class="card col" id="kycSection">
-    <h3>SECURITY CLEARANCE (KYC)</h3>
-    <button class="btn green" onclick="openKyc()">INITIATE KYC</button>
-    <p id="kycStatus" class="loading" style="margin-top:15px; font-family:'Share Tech Mono';">STATUS: UNKNOWN</p>
+    <h3>Security Clearance (KYC)</h3>
+    <button class="btn green" onclick="openKyc()">Initiate Scan</button>
+    <p id="kycStatus" class="loading" style="margin-top:20px; font-family:'Share Tech Mono'; color: var(--text-muted);">STATUS: UNKNOWN</p>
   </div>
 
   <div class="card col" id="upiSection" style="display:none;">
-    <h3>LINKED NODE (UPI)</h3>
-    <p id="upi" style="font-family:'Share Tech Mono'; font-size: 20px; color: var(--neon-cyan);"></p>
+    <h3>Linked Node (UPI)</h3>
+    <p id="upi" style="font-family:'Share Tech Mono'; font-size: 22px; color: var(--core-cyan); margin-top: 15px;"></p>
   </div>
 </div>
 
 <div class="section">
-  <h3>BROADCAST PROTOCOLS</h3>
+  <h3>Broadcast Protocols</h3>
   <div class="row">
     <div class="card col">
-      <h3>ALERT HUB</h3>
+      <h3>Alert Hub Endpoint</h3>
       <div class="linkbox">
-        <input id="alertLink" class="loading" readonly>
-        <button class="btn green" onclick="copy('alertLink')">COPY</button>
+        <div class="input-group"><input id="alertLink" class="loading" readonly></div>
+        <button class="btn green" onclick="copy('alertLink')">Copy</button>
       </div>
     </div>
     <div class="card col">
-      <h3>TELEMETRY (STATS)</h3>
+      <h3>Telemetry Stream</h3>
       <div class="linkbox">
-        <input id="statsLink" class="loading" readonly>
-        <button class="btn green" onclick="copy('statsLink')">COPY</button>
+        <div class="input-group"><input id="statsLink" class="loading" readonly></div>
+        <button class="btn green" onclick="copy('statsLink')">Copy</button>
       </div>
     </div>
   </div>
@@ -178,51 +302,54 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
 
 <div class="section row">
   <div class="card col">
-    <h3>PUBLIC ENDPOINT (TIP PAGE)</h3>
+    <h3>Public Interface (Tip Page)</h3>
     <div class="linkbox">
-      <input id="tipLink" class="loading" readonly>
-      <button class="btn green" onclick="copy('tipLink')">COPY</button>
+      <div class="input-group"><input id="tipLink" class="loading" readonly></div>
+      <button class="btn green" onclick="copy('tipLink')">Copy</button>
     </div>
   </div>
   <div class="card col">
-    <h3>DIAGNOSTICS</h3>
-    <button class="btn green">TEST ALERT</button>
-    <button class="btn red">REPLAY LAST</button>
+    <h3>System Diagnostics</h3>
+    <div style="display:flex; gap:15px; margin-top: 15px;">
+      <button class="btn green" style="flex:1;">Ping Alert</button>
+      <button class="btn red" style="flex:1;">Replay Log</button>
+    </div>
   </div>
 </div>
 
 <div class="section row">
-  <div class="card col">
-    <h3>INCOMING TRANSMISSIONS</h3>
+  <div class="card col" style="flex: 2;">
+    <h3>Incoming Transmissions</h3>
     <table>
       <thead>
-        <tr><th>SOURCE</th><th>PAYLOAD</th><th>CREDITS</th><th>TIMESTAMP</th></tr>
+        <tr><th style="text-align:left;">SOURCE</th><th style="text-align:left;">PAYLOAD</th><th style="text-align:left;">CREDITS</th><th style="text-align:right;">TIMESTAMP</th></tr>
       </thead>
       <tbody id="transmissionBody">
-        <tr><td colspan="4" style="text-align:center;">SCANNING...</td></tr>
+        <tr><td colspan="4" style="text-align:center; padding: 30px; color: var(--text-muted);">AWAITING DATA PACKETS...</td></tr>
       </tbody>
-    </table>
-  </div>
-  <div class="card col">
-    <h3>OUTGOING LOGS</h3>
-    <table>
-      <tr><th>TIMESTAMP</th><th>CREDITS</th><th>TX_HASH</th></tr>
     </table>
   </div>
 </div>
 
 <div class="popup" id="kycPopup">
   <div class="popup-box">
-    <h3 style="color:var(--neon-cyan);">KYC UPLINK</h3>
-    <input id="fullName" placeholder="> Legal Designation"><br>
-    <input id="upiInput" placeholder="> UPI Identifier"><br>
+    <h3 style="color:var(--core-cyan); border-bottom: none; justify-content: center; margin-bottom: 20px;">Identity Verification</h3>
     
-    <span class="file-label">> ATTACH PAN DOC</span>
-    <input type="file" id="panUpload" accept="image/*,application/pdf"><br>
+    <div class="input-group">
+      <input id="fullName" placeholder="Legal Designation">
+    </div>
+    <div class="input-group">
+      <input id="upiInput" placeholder="UPI Identifier">
+    </div>
     
-    <div style="margin-top: 15px;">
-      <button class="btn green" id="transmitKycBtn" onclick="submitKyc()">TRANSMIT</button>
-      <button class="btn red" onclick="closeKyc()">ABORT</button>
+    <div class="input-group" style="margin-top: 15px;">
+      <span class="file-label">Attach PAN Document</span>
+      <input type="file" id="panUpload" accept="image/*,application/pdf">
+    </div>
+    
+    <div style="margin-top: 30px; display: flex; gap: 15px;">
+      <button class="btn green" id="transmitKycBtn" onclick="submitKyc()" style="flex:1;">Transmit</button>
+      <button class="btn red" onclick="closeKyc()" style="flex:1;">Abort</button>
     </div>
   </div>
 </div>
@@ -308,7 +435,7 @@ async function fetchTips(myUsername) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    tableBody.innerHTML = "<tr><td colspan='4' style='color:red;'>ERROR: DATA_CORRUPTED</td></tr>";
+    tableBody.innerHTML = "<tr><td colspan='4' style='color:var(--core-amber);'>ERROR: DATA_CORRUPTED</td></tr>";
     return;
   }
 
@@ -322,10 +449,10 @@ async function fetchTips(myUsername) {
     const date = new Date(tip.created_at).toLocaleString();
     const row = `
       <tr>
-        <td style="color: var(--neon-cyan); font-weight:bold;">${tip.sender_name || 'ANON'}</td>
-        <td style="color: #8fa1d0; font-style: italic;">"${tip.message || '---'}"</td>
-        <td style="color: var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
-        <td style="font-size: 11px; opacity:0.6;">${date}</td>
+        <td style="color: #fff; font-weight:bold;">${tip.sender_name || 'ANON'}</td>
+        <td style="color: var(--text-muted); font-style: italic;">"${tip.message || '---'}"</td>
+        <td style="color: var(--core-cyan); font-weight:bold;">₹${tip.amount}</td>
+        <td style="font-size: 12px; color: var(--text-muted); text-align:right;">${date}</td>
       </tr>
     `;
     tableBody.insertAdjacentHTML('beforeend', row);
@@ -336,20 +463,18 @@ async function fetchTips(myUsername) {
 async function saveProfile() {
   const usernameInput = document.getElementById("nameInput").value.trim();
   const file = document.getElementById("logoUpload").files[0];
-  const finalUsername = usernameInput || currentUsername; // Keep old username if input is empty
+  const finalUsername = usernameInput || currentUsername;
 
   if (!finalUsername && !file) {
     return alert("SYSTEM ALERT: No new data to upload.");
   }
 
-  // Update UI to show uploading state
   const btn = document.getElementById("uploadDataBtn");
   btn.innerText = "UPLOADING...";
   btn.disabled = true;
 
   let logoUrl = null;
 
-  // Handle Logo Upload if file exists
   if (file) {
     const fileName = userId + "_" + Date.now();
     const { error: uploadError } = await client.storage
@@ -360,26 +485,24 @@ async function saveProfile() {
       logoUrl = client.storage.from("logos").getPublicUrl(fileName).data.publicUrl;
     } else {
       console.error("Logo Upload Error:", uploadError);
-      alert("UPLOAD FAILED: Verify 'logos' storage bucket exists and allows inserts.");
-      btn.innerText = "UPLOAD DATA";
+      alert("UPLOAD FAILED: Verify 'logos' storage bucket exists.");
+      btn.innerText = "Sync Data";
       btn.disabled = false;
       return;
     }
   }
 
-  // Build the update payload
   const updateData = { id: userId };
   if (finalUsername) updateData.username = finalUsername;
   if (logoUrl) updateData.logo = logoUrl;
 
-  // Save to database
   const { error: dbError } = await client.from("users").upsert(updateData);
 
   if (!dbError) {
     location.reload();
   } else {
     alert("DATABASE ERROR: " + dbError.message);
-    btn.innerText = "UPLOAD DATA";
+    btn.innerText = "Sync Data";
     btn.disabled = false;
   }
 }
@@ -391,17 +514,15 @@ async function submitKyc() {
   const panFile = document.getElementById("panUpload").files[0];
 
   if (!name || !upi || !panFile) {
-    return alert("SYSTEM ALERT: All fields are required for KYC.");
+    return alert("SYSTEM ALERT: All fields are required for clearance.");
   }
 
-  // Update UI to show uploading state
   const btn = document.getElementById("transmitKycBtn");
   btn.innerText = "UPLOADING...";
   btn.disabled = true;
 
   let panUrl = null;
 
-  // Handle PAN Upload
   const fileName = "pan_" + userId + "_" + Date.now();
   const { error: uploadError } = await client.storage
     .from("kyc_docs") 
@@ -411,13 +532,12 @@ async function submitKyc() {
     panUrl = client.storage.from("kyc_docs").getPublicUrl(fileName).data.publicUrl;
   } else {
     console.error("PAN Upload Error:", uploadError);
-    alert("UPLOAD FAILED: Verify 'kyc_docs' storage bucket exists and allows inserts.");
-    btn.innerText = "TRANSMIT";
+    alert("UPLOAD FAILED: Verify 'kyc_docs' storage bucket exists.");
+    btn.innerText = "Transmit";
     btn.disabled = false;
     return;
   }
 
-  // Save KYC data to user table
   const { error: dbError } = await client.from("users").upsert({
     id: userId,
     name: name,
@@ -433,8 +553,7 @@ async function submitKyc() {
     alert("KYC DATABASE ERROR: " + dbError.message);
   }
   
-  // Reset Button
-  btn.innerText = "TRANSMIT";
+  btn.innerText = "Transmit";
   btn.disabled = false;
 }
 
@@ -464,9 +583,10 @@ init();
 </script>
 
 <div class="footer">
-  © 2026 XDTip • 
-  <a href="terms.html">TERMS</a> • 
-  <a href="privacy.html">PRIVACY</a> • 
+  © 2026 XDTIP CORP. ALL SYSTEMS OPERATIONAL.
+  <br><br>
+  <a href="terms.html">TERMS</a> | 
+  <a href="privacy.html">PRIVACY</a> | 
   <a href="refund.html">REFUND POLICY</a>
 </div>
 
