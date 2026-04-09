@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Admin | XDTip</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 250px;
+            background-color: #1e293b;
+            border-right: 1px solid #334155;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar h2 { margin-top: 0; color: #38bdf8; font-weight: 800; letter-spacing: 1px;}
+        
+        .nav-btn {
+            background: transparent;
+            color: #cbd5e1;
+            border: none;
+            text-align: left;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: #38bdf8;
+            color: #0f172a;
+        }
+
+        .logout-btn { margin-top: auto; color: #ef4444; }
+        .logout-btn:hover { background: #ef4444; color: #fff; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .header-title { font-size: 28px; margin-top: 0; margin-bottom: 30px; border-bottom: 1px solid #334155; padding-bottom: 15px;}
+
+        /* --- SUMMARY CARDS --- */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card h3 { margin: 0; font-size: 14px; color: #94a3b8; text-transform: uppercase; }
+        .card .value { font-size: 36px; font-weight: 800; margin: 10px 0 0 0; color: #fff; }
+        .card .value.green { color: #22c55e; }
+
+        /* --- TABLES --- */
+        .table-container {
+            background: #1e293b;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            display: none; /* Hidden by default for tab switching */
+        }
+
+        .table-container.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 15px 20px; border-bottom: 1px solid #334155; }
+        th { background: #0f172a; font-size: 13px; color: #94a3b8; text-transform: uppercase; }
+        td { font-size: 15px; }
+        tr:hover { background: #334155; }
+        
+        .badge {
+            background: #3b82f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;
+        }
+
+        /* Loading Screen */
+        #loader {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: #0f172a; display: flex; justify-content: center; align-items: center;
+            z-index: 100; flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <h2 style="color:#38bdf8;">Authenticating Admin...</h2>
+    </div>
+
+    <div class="sidebar">
+        <h2>XDTIP ADMIN</h2>
+        <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="nav-btn" onclick="switchTab('users')">All Users</button>
+        <button class="nav-btn" onclick="switchTab('tips')">Tip History</button>
+        
+        <button class="nav-btn logout-btn" onclick="logout()">Back to App</button>
+    </div>
+
+    <div class="main-content">
+        <h1 class="header-title" id="page-title">Platform Overview</h1>
+
+        <div id="tab-dashboard" class="table-container active" style="background:transparent; border:none;">
+            <div class="cards-grid">
+                <div class="card">
+                    <h3>Total Users</h3>
+                    <p class="value" id="stat-users">0</p>
+                </div>
+                <div class="card">
+                    <h3>Total Tips Processed</h3>
+                    <p class="value" id="stat-tips">0</p>
+                </div>
+                <div class="card">
+                    <h3>Total Platform Volume</h3>
+                    <p class="value green" id="stat-revenue">₹0</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-users" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Overlay Theme</th>
+                        <th>Joined Date</th>
+                        <th>OBS Token (Hidden)</th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody">
+                    </tbody>
+            </table>
+        </div>
+
+        <div id="tab-tips" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>To (Creator)</th>
+                        <th>From (Sender)</th>
+                        <th>Amount</th>
+                        <th>Message</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="tips-tbody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase Client
+        const client = window.supabase.createClient(
+            "https://yohrquotbdmsxfeyxtqr.supabase.co",
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+        );
+
+        async function bootAdmin() {
+            // 1. Check if a user is logged in
+            const { data: { session }, error } = await client.auth.getSession();
+            
+            if (!session) {
+                alert("You are not logged in.");
+                window.location.href = "/login";
+                return;
+            }
+
+            const userEmail = session.user.email;
+
+            // 2. Request Data from Secure Server Route
+            try {
+                const response = await fetch('/api/admin/data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userEmail })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert(data.error || "Access Denied.");
+                    window.location.href = "/dashboard"; // Kick them out if not admin
+                    return;
+                }
+
+                // 3. Populate Data if Authorized!
+                document.getElementById('loader').style.display = 'none';
+                
+                // Populate Cards
+                document.getElementById('stat-users').innerText = data.totalUsers;
+                document.getElementById('stat-tips').innerText = data.totalTips;
+                document.getElementById('stat-revenue').innerText = "₹" + data.totalRevenue.toLocaleString('en-IN');
+
+                // Populate Users Table
+                const usersHtml = data.users.map(u => `
+                    <tr>
+                        <td style="font-weight:bold; color:#fff;">${u.username}</td>
+                        <td><span class="badge">${u.overlay_theme || 'None'}</span></td>
+                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
+                        <td style="color:#64748b; font-family:monospace;">${u.obs_token ? u.obs_token.substring(0,8) + '...' : 'N/A'}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('users-tbody').innerHTML = usersHtml;
+
+                // Populate Tips Table
+                const tipsHtml = data.tips.map(t => `
+                    <tr>
+                        <td style="color:#38bdf8; font-weight:bold;">${t.username}</td>
+                        <td>${t.sender_name}</td>
+                        <td style="color:#22c55e; font-weight:bold;">₹${t.amount}</td>
+                        <td style="font-style:italic; color:#cbd5e1;">"${t.message}"</td>
+                        <td>${new Date(t.created_at).toLocaleString()}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('tips-tbody').innerHTML = tipsHtml;
+
+            } catch (err) {
+                console.error(err);
+                alert("Failed to connect to Admin Server.");
+            }
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            // Update Buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update Titles & Containers
+            document.querySelectorAll('.table-container').forEach(tc => tc.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+
+            const titleMap = {
+                'dashboard': 'Platform Overview',
+                'users': 'Registered Creators',
+                'tips': 'Global Tip Ledger'
+            };
+            document.getElementById('page-title').innerText = titleMap[tabName];
+        }
+
+        function logout() {
+            window.location.href = "/dashboard";
+        }
+
+        // Start Auth Check
+        bootAdmin();
+    </script>
+</body>
+</html>
