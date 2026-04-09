@@ -500,6 +500,39 @@ async function submitKyc() {
   btn.disabled = false;
 }
 
+  // Trigger the Test Alert via backend
+async function sendTestAlert() {
+  if (!currentUsername) {
+    alert("SYSTEM ALERT: Your profile is initializing. Please wait a moment.");
+    return;
+  }
+
+  try {
+    // Send a POST request to your live Render server
+    const response = await fetch('/test-alert', { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: currentUsername, // <-- Sending the username safely here
+        tipper: "System Test",
+        amount: 99,
+        message: "Audio and visuals are perfectly synced!"
+      })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      console.log("Test Alert Fired successfully!");
+    } else {
+      console.error("Test alert failed:", data.error);
+    }
+  } catch (err) {
+    console.error("Failed to send test alert:", err);
+  }
+}
+
 // HELPERS
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -523,34 +556,6 @@ async function logout() {
 
 // 🔥 START THE SYSTEM
 init();
-
-// Trigger the Test Alert via backend
-async function sendTestAlert() {
-  try {
-    // Assuming you store your Express JWT token in localStorage as 'token'
-    const token = localStorage.getItem('token'); 
-    
-    const response = await fetch('http://localhost:3000/test-alert', { // <-- Change to your live URL if hosted
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}` 
-      },
-      body: JSON.stringify({
-        tipper: "System Test",
-        amount: 99,
-        message: "Audio and visuals are perfectly synced!"
-      })
-    });
-    
-    const data = await response.json();
-    if (data.success) {
-      console.log("Test Alert Fired!");
-    }
-  } catch (err) {
-    console.error("Failed to send test alert:", err);
-  }
-}
   
 </script>
 
