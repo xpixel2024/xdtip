@@ -137,16 +137,7 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
 
   <button class="btn green" id="uploadDataBtn" onclick="saveProfile()">UPLOAD DATA</button>
 </div>
-<style>
-    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 12px; }
-    .dot-offline { background-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
-    .dot-online { background-color: #00ff88; box-shadow: 0 0 10px #00ff88; }
-    .text-offline { color: #ff0055; font-family: 'Share Tech Mono'; }
-    .text-online { color: #00ff88; font-family: 'Share Tech Mono'; }
-    .pulse-animation { animation: status-pulse 2s infinite; }
-    @keyframes status-pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-    #ytStatus { border-left: 3px solid #ff0055; transition: 0.5s; }
-</style>
+
 <div class="section row">
   <div class="card col">
     <h3>CREDITS</h3>
@@ -193,16 +184,6 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
-
-<div class="card col">
-        <h3>DIAGNOSTICS</h3>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn green" style="flex: 1;" onclick="sendTestAlert()">TEST</button>
-            <button class="btn red" style="flex: 1;" onclick="replayLastAlert()">REPLAY</button>
-        </div>
-    </div>
-</div>
-  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
@@ -609,29 +590,6 @@ async function replayLastAlert() {
     console.error("FATAL ERROR during fetch:", err);
     alert("Network error. Is the server online?");
   }
-}
-
-  function updateSystemStatus(connected) {
-    const dot = document.getElementById("statusDot");
-    const text = document.getElementById("statusText");
-    const container = document.getElementById("ytStatus");
-
-    // This "if" prevents the "Unresponsive/Crash" bug
-    if (!dot || !text || !container) return;
-
-    if (connected) {
-        dot.className = "status-dot dot-online pulse-animation";
-        text.className = "status-text text-online";
-        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
-        container.style.borderLeft = "3px solid #00ff88";
-        container.style.borderColor = "rgba(0, 255, 136, 0.3)";
-    } else {
-        dot.className = "status-dot dot-offline";
-        text.className = "status-text text-offline";
-        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
-        container.style.borderLeft = "3px solid #ff0055";
-        container.style.borderColor = "rgba(255, 0, 85, 0.3)";
-    }
 }
   
 </script>
