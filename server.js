@@ -418,50 +418,58 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
     }
 });
 
-const { google } = require('googleapis');
+async function syncLiveEvents(user) {
+  const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+  oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
+  const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
-async function checkYoutubeSubscribers(user) {
   try {
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
-    );
+    // 1. GET THE ACTIVE LIVE STREAM
+    const broadcastRes = await youtube.liveBroadcasts.list({ mine: true, broadcastStatus: 'active', part: 'snippet' });
+    const liveChatId = broadcastRes.data.items[0]?.snippet.liveChatId;
 
-    oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
+    if (!liveChatId) return; // User is not live
 
-    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-
-    // Fetch the most recent subscriber
-    const response = await youtube.subscriptions.list({
-      part: 'snippet',
-      mine: true,
-      maxResults: 1,
+    // 2. CATCH CHAT & SUPERCHATS
+    const chatRes = await youtube.liveChatMessages.list({
+      liveChatId: liveChatId,
+      part: 'snippet,authorDetails'
     });
 
-    const latestSubscriber = response.data.items[0]?.snippet.title;
-
-    // Logic: If there's a new name we haven't seen before, trigger alert
-    if (latestSubscriber && latestSubscriber !== user.last_sub_name) {
-      console.log(`Alert: New YouTube Sub for ${user.username}: ${latestSubscriber}`);
-
-      // 1. Emit the alert via Socket.io to the Overlay
-      // Replace 'io' with your socket variable name
-      io.emit(`alert-${user.obs_token}`, {
-        type: 'youtube_sub',
-        name: latestSubscriber,
-        message: 'New Subscriber!'
-      });
-
-      // 2. Update Supabase so we don't alert the same person twice
-      await supabase
-        .from('users')
-        .update({ last_sub_name: latestSubscriber })
-        .eq('id', user.id);
-    }
-  } catch (error) {
-    console.error(`YouTube API Error for ${user.username}:`, error.message);
+    const messages = chatRes.data.items;
+    messages.forEach(msg => {
+       // SUPERCHAT DETECTOR
+       if (msg.snippet.type === 'superChatEvent') {
+          const amount = msg.snippet.superChatDetails.amountMicros / 1000000;
+          triggerAlert(user.obs_token, 'superchat', msg.authorDetails.displayName, amount, msg.snippet.displayMessage);
+       }
+       
+       // CHAT MESSAGE (For chat overlays)
+       else if (msg.snippet.type === 'textMessageEvent') {
+          io.emit(`chat-${user.obs_token}`, {
+            user: msg.authorDetails.displayName,
+            text: msg.snippet.displayMessage
+          });
+       }
+    });
+  } catch (err) {
+    console.error("YouTube Live Sync Error:", err.message);
   }
 }
+
+setInterval(async () => {
+  const { data: users } = await supabase.from('users').select('*').eq('youtube_connected', true);
+  
+  users.forEach(user => {
+    checkYoutubeSubscribers(user); // Check subs every 2 mins
+    
+    // Only check chat/superchat if user manually toggles "Live Mode" 
+    // or if you check their status once every 5 mins.
+    if (user.is_live) {
+       syncLiveEvents(user); 
+    }
+  });
+}, 120000);
 
 // ===================
 // START SERVER
