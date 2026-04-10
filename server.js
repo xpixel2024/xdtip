@@ -471,6 +471,83 @@ setInterval(async () => {
   });
 }, 120000);
 
+async function pollYouTubeLive(user) {
+    const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+    oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
+    const youtube = google.google.youtube({ version: 'v3', auth: oauth2Client });
+
+    try {
+        let chatId = user.active_chat_id;
+
+        // 1. If we don't have a Chat ID, find the active broadcast
+        if (!chatId) {
+            const broadcastRes = await youtube.liveBroadcasts.list({
+                mine: true,
+                broadcastStatus: 'active',
+                part: 'snippet'
+            });
+            chatId = broadcastRes.data.items[0]?.snippet.liveChatId;
+            
+            if (chatId) {
+                await supabase.from('users').update({ active_chat_id: chatId }).eq('id', user.id);
+            } else {
+                return; // User is not live, stop here to save quota
+            }
+        }
+
+        // 2. Fetch new messages
+        const chatRes = await youtube.liveChatMessages.list({
+            liveChatId: chatId,
+            part: 'snippet,authorDetails',
+            maxResults: 200
+        });
+
+        const messages = chatRes.data.items;
+        
+        for (const msg of messages) {
+            const msgTime = new Date(msg.snippet.publishedAt).getTime();
+            const lastCheck = new Date(user.last_chat_timestamp || 0).getTime();
+
+            if (msgTime > lastCheck) {
+                // --- DETECT SUPERCHATS ---
+                if (msg.snippet.type === 'superChatEvent') {
+                    const details = msg.snippet.superChatDetails;
+                    io.emit(`alert-${user.obs_token}`, {
+                        type: 'superchat',
+                        sender: msg.authorDetails.displayName,
+                        amount: details.amountDisplayString,
+                        message: msg.snippet.displayMessage,
+                        tier: details.tier // Useful for different colors in OBS
+                    });
+                }
+
+                // --- DETECT SUPER STICKERS ---
+                if (msg.snippet.type === 'superStickerEvent') {
+                    io.emit(`alert-${user.obs_token}`, {
+                        type: 'sticker',
+                        sender: msg.authorDetails.displayName,
+                        amount: msg.snippet.superStickerDetails.amountDisplayString
+                    });
+                }
+            }
+        }
+
+        // 3. Update timestamp so we don't repeat alerts
+        if (messages.length > 0) {
+            const latestTime = messages[messages.length - 1].snippet.publishedAt;
+            await supabase.from('users').update({ last_chat_timestamp: latestTime }).eq('id', user.id);
+        }
+
+    } catch (err) {
+        if (err.message.includes('404')) {
+            // Stream ended, clear the Chat ID
+            await supabase.from('users').update({ active_chat_id: null }).eq('id', user.id);
+        }
+        console.error("YT_POLL_ERROR:", err.message);
+    }
+}
+
+
 // ===================
 // START SERVER
 // ===================
