@@ -184,6 +184,16 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
+
+<div class="card col" style="min-width: 250px;">
+    <h3>ENGINE STATUS</h3>
+    <div class="status-indicator" id="ytStatus" style="margin: 10px 0; border: none; background: rgba(0,0,0,0.3); padding: 15px;">
+        <span class="status-dot dot-offline" id="statusDot"></span>
+        <span class="status-text text-offline" id="statusText">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
+    </div>
+    <p style="font-family: 'Share Tech Mono'; font-size: 11px; color: #55678a; margin: 0;">> UPLINK: YouTube API v3</p>
+  </div>
+  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
@@ -548,6 +558,28 @@ async function sendTestAlert() {
     console.error("Failed to send test alert:", err);
   }
 }
+  function updateSystemStatus(connected) {
+    const dot = document.getElementById("statusDot");
+    const text = document.getElementById("statusText");
+    const container = document.getElementById("ytStatus");
+
+    if (connected) {
+        // Change to Green/Online Pulse
+        dot.className = "status-dot dot-online pulse-animation";
+        text.className = "status-text text-online";
+        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
+        container.style.borderLeft = "3px solid #00ff88"; // Extra visual cue
+    } else {
+        // Keep Red/Offline
+        dot.className = "status-dot dot-offline";
+        text.className = "status-text text-offline";
+        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
+        container.style.borderLeft = "3px solid #ff0055";
+    }
+}
+
+// Ensure this is called inside your init() function:
+// updateSystemStatus(profile.youtube_connected);
 
 // HELPERS
 function setText(id, text) {
