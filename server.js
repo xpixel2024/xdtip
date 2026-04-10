@@ -584,21 +584,24 @@ setInterval(async () => {
     if (users) users.forEach(user => pollYouTubeSubs(user));
 }, 120000);
 
-async function updateStatusDisplay(profile) {
-    const statusBox = document.getElementById("ytStatus");
-    
+// Add this logic inside your init() function after fetching profile data
+function updateSystemStatus(profile) {
+    const dot = document.getElementById("statusDot");
+    const text = document.getElementById("statusText");
+    const container = document.getElementById("ytStatus");
+
     if (profile.youtube_connected) {
-        statusBox.innerHTML = `
-            <span class="dot pulse"></span>
-            <span class="status-text">SYSTEM STATUS: [ 🟢 MONITORING LIVE ]</span>
-        `;
-        statusBox.style.borderColor = "rgba(0, 255, 136, 0.3)";
+        // Change to Green/Online
+        dot.className = "status-dot dot-online pulse-animation";
+        text.className = "status-text text-online";
+        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
+        container.style.borderColor = "rgba(0, 255, 136, 0.3)";
     } else {
-        statusBox.innerHTML = `
-            <span class="dot" style="background-color: #ff0055; box-shadow: 0 0 10px #ff0055;"></span>
-            <span class="status-text" style="color: #ff0055;">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
-        `;
-        statusBox.style.borderColor = "rgba(255, 0, 85, 0.3)";
+        // Keep Red/Offline
+        dot.className = "status-dot dot-offline";
+        text.className = "status-text text-offline";
+        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
+        container.style.borderColor = "rgba(255, 0, 85, 0.3)";
     }
 }
 
