@@ -264,17 +264,17 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
+// 1. INITIALIZE SUPABASE
 const client = window.supabase.createClient(
-  "https://yohrquotbdmsxfeyxtqr.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+    "https://yohrquotbdmsxfeyxtqr.supabase.co", 
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
 );
 
 let userId = "";
 let currentUsername = "";
 
-// 🔥 1. INITIALIZATION FUNCTION
+// 2. CORE BOOT FUNCTION
 async function init() {
     const { data: { user } } = await client.auth.getUser();
     if (!user) { location.href = "/login"; return; }
@@ -285,307 +285,59 @@ async function init() {
         
         if (profile) {
             currentUsername = profile.username;
+            
+            // UI Updates
             updateSystemStatus(profile.youtube_connected);
             
-            // --- GENERATE OBS TOKEN IF MISSING ---
+            // --- OBS TOKEN ENGINE ---
             let obsToken = profile.obs_token;
             if (!obsToken) {
                 obsToken = crypto.randomUUID();
                 await client.from("users").update({ obs_token: obsToken }).eq("id", userId);
             }
 
-            // --- FILL THE BROADCAST LINKS ---
+            // Fill Broadcast Inputs
             setVal("alertLink", `https://xdtip.in/alert/${obsToken}`);
             setVal("statsLink", `https://xdtip.in/stats-overlay/${obsToken}`);
 
             if (profile.username) {
                 setText("username", "@" + profile.username);
                 setVal("tipLink", `https://xdtip.in/${profile.username}`);
+                
+                // Load Tables
+                fetchTips(profile.username);
+                fetchPayouts(userId);
             }
 
             if (profile.logo) {
-                document.getElementById("avatar").style.backgroundImage = `url(${profile.logo})`;
+                const avatarEl = document.getElementById("avatar");
+                if(avatarEl) avatarEl.style.backgroundImage = `url(${profile.logo})`;
             }
 
-            // Update balance if you have the element
             if(document.getElementById("balance")) {
                 setText("balance", "₹" + (profile.balance || 0));
             }
+
+            // Handle KYC Status Display
+            if (profile.kyc === "pending") {
+                setText("kycStatus", "VERIFICATION IN PROGRESS...");
+            } else if (profile.kyc === true || profile.kyc === "true") {
+                const kycSection = document.getElementById("kycSection");
+                const upiSection = document.getElementById("upiSection");
+                if(kycSection) kycSection.style.display = "none";
+                if(upiSection) {
+                    upiSection.style.display = "block";
+                    document.getElementById("upi").innerText = profile.upi || "NO UPI LINKED";
+                }
+            }
         }
     } catch (e) {
-        console.error("DASHBOARD_BOOT_ERROR:", e);
+        console.error("BOOT_FAILURE:", e);
     }
 }
 
-// 🔥 2. FETCH TIPS LOGIC
-async function fetchTips(myUsername) {
-  const tableBody = document.getElementById("transmissionBody");
-
-  const { data: tips, error } = await client
-    .from("tips")
-    .select("*")
-    .ilike("username", myUsername) 
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    tableBody.innerHTML = "<tr><td colspan='4' style='color:red;'>ERROR: DATA_CORRUPTED</td></tr>";
-    return;
-  }
-
-  if (!tips || tips.length === 0) {
-    tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; opacity:0.5;'>NO TRANSMISSIONS DETECTED</td></tr>";
-    return;
-  }
-
-  tableBody.innerHTML = "";
-  tips.forEach(tip => {
-    const date = new Date(tip.created_at).toLocaleString();
-    const row = `
-      <tr>
-        <td style="color: var(--neon-cyan); font-weight:bold;">${tip.sender_name || 'ANON'}</td>
-        <td style="color: #8fa1d0; font-style: italic;">"${tip.message || '---'}"</td>
-        <td style="color: var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
-        <td style="font-size: 11px; opacity:0.6;">${date}</td>
-      </tr>
-    `;
-    tableBody.insertAdjacentHTML('beforeend', row);
-  });
-}
-
-// 🔥 3. FETCH PAYOUTS LOGIC
-async function fetchPayouts(currentUserId) {
-  const tableBody = document.getElementById("payoutBody");
-
-  const { data: payouts, error } = await client
-    .from("payouts")
-    .select("*")
-    .eq("user_id", currentUserId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    tableBody.innerHTML = "<tr><td colspan='3' style='color:red;'>ERROR: LOGS_CORRUPTED</td></tr>";
-    return;
-  }
-
-  if (!payouts || payouts.length === 0) {
-    tableBody.innerHTML = "<tr><td colspan='3' style='text-align:center; opacity:0.5;'>NO OUTGOING TRANSFERS</td></tr>";
-    return;
-  }
-
-  tableBody.innerHTML = "";
-  payouts.forEach(payout => {
-    const date = new Date(payout.created_at).toLocaleString();
-    
-    // Dynamic coloring based on status
-    let statusColor = 'var(--neon-cyan)'; // Default for completed
-    if (payout.status && payout.status.toLowerCase() === 'failed') statusColor = 'var(--neon-magenta)';
-    if (payout.status && payout.status.toLowerCase() === 'pending') statusColor = '#e3c800'; // Yellowish alert
-
-    // Display TX hash if it exists, otherwise just the status
-    const displayStatus = payout.tx_hash ? `${(payout.status || 'COMPLETED').toUpperCase()} [${payout.tx_hash}]` : (payout.status || 'PROCESSING').toUpperCase();
-
-    const row = `
-      <tr>
-        <td style="font-size: 11px; opacity:0.6;">${date}</td>
-        <td style="color: var(--neon-magenta); font-weight:bold;">₹${payout.amount}</td>
-        <td style="color: ${statusColor}; font-family: 'Share Tech Mono'; font-size: 11px;">${displayStatus}</td>
-      </tr>
-    `;
-    tableBody.insertAdjacentHTML('beforeend', row);
-  });
-}
-
-// 🔥 4. UPLOAD PROFILE & LOGO LOGIC
-async function saveProfile() {
-  const usernameInput = document.getElementById("nameInput").value.trim();
-  const file = document.getElementById("logoUpload").files[0];
-  const finalUsername = usernameInput || currentUsername;
-
-  if (!finalUsername && !file) {
-    return alert("SYSTEM ALERT: No new data to upload.");
-  }
-
-  const btn = document.getElementById("uploadDataBtn");
-  btn.innerText = "UPLOADING...";
-  btn.disabled = true;
-
-  let logoUrl = null;
-
-  if (file) {
-    const fileName = userId + "_" + Date.now();
-    const { error: uploadError } = await client.storage
-      .from("logos")
-      .upload(fileName, file);
-
-    if (!uploadError) {
-      logoUrl = client.storage.from("logos").getPublicUrl(fileName).data.publicUrl;
-    } else {
-      console.error("Logo Upload Error:", uploadError);
-      alert("UPLOAD FAILED: Verify 'logos' storage bucket exists and allows inserts.");
-      btn.innerText = "UPLOAD DATA";
-      btn.disabled = false;
-      return;
-    }
-  }
-
-  const updateData = { id: userId };
-  if (finalUsername) updateData.username = finalUsername;
-  if (logoUrl) updateData.logo = logoUrl;
-
-  const { error: dbError } = await client.from("users").upsert(updateData);
-
-  if (!dbError) {
-    location.reload();
-  } else {
-    alert("DATABASE ERROR: " + dbError.message);
-    btn.innerText = "UPLOAD DATA";
-    btn.disabled = false;
-  }
-}
-
-// 🔥 5. KYC TRANSMISSION LOGIC
-async function submitKyc() {
-  const name = document.getElementById("fullName").value.trim();
-  const upi = document.getElementById("upiInput").value.trim();
-  const panFile = document.getElementById("panUpload").files[0];
-
-  if (!name || !upi || !panFile) {
-    return alert("SYSTEM ALERT: All fields are required for KYC.");
-  }
-
-  const btn = document.getElementById("transmitKycBtn");
-  btn.innerText = "UPLOADING...";
-  btn.disabled = true;
-
-  let panUrl = null;
-
-  const fileName = "pan_" + userId + "_" + Date.now();
-  const { error: uploadError } = await client.storage
-    .from("kyc_docs") 
-    .upload(fileName, panFile);
-
-  if (!uploadError) {
-    panUrl = client.storage.from("kyc_docs").getPublicUrl(fileName).data.publicUrl;
-  } else {
-    console.error("PAN Upload Error:", uploadError);
-    alert("UPLOAD FAILED: Verify 'kyc_docs' storage bucket exists and allows inserts.");
-    btn.innerText = "TRANSMIT";
-    btn.disabled = false;
-    return;
-  }
-
-  const { error: dbError } = await client.from("users").upsert({
-    id: userId,
-    name: name,
-    upi: upi,
-    pan_url: panUrl,
-    kyc: "pending"
-  });
-
-  if (!dbError) {
-    setText("kycStatus", "VERIFICATION IN PROGRESS...");
-    closeKyc();
-  } else {
-    alert("KYC DATABASE ERROR: " + dbError.message);
-  }
-  
-  btn.innerText = "TRANSMIT";
-  btn.disabled = false;
-}
-
-  // Trigger the Test Alert via backend
-async function sendTestAlert() {
-  if (!currentUsername) {
-    alert("SYSTEM ALERT: Your profile is initializing. Please wait a moment.");
-    return;
-  }
-
-  try {
-    // Send a POST request to your live Render server
-    const response = await fetch('/test-alert', { 
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        username: currentUsername, // <-- Sending the username safely here
-        tipper: "System Test",
-        amount: 99,
-        message: "Audio and visuals are perfectly synced!"
-      })
-    });
-    
-    const data = await response.json();
-    if (data.success) {
-      console.log("Test Alert Fired successfully!");
-    } else {
-      console.error("Test alert failed:", data.error);
-    }
-  } catch (err) {
-    console.error("Failed to send test alert:", err);
-  }
-}
-
-// HELPERS
-function setText(id, text) {
-  const el = document.getElementById(id);
-  if (el) { el.innerText = text; el.classList.remove("loading"); }
-}
-function setVal(id, text) {
-  const el = document.getElementById(id);
-  if (el) { el.value = text; el.classList.remove("loading"); }
-}
-function openKyc() { document.getElementById("kycPopup").style.display = "flex"; }
-function closeKyc() { document.getElementById("kycPopup").style.display = "none"; }
-function copy(id) {
-  const el = document.getElementById(id);
-  el.select();
-  document.execCommand("copy");
-}
-async function logout() {
-  await client.auth.signOut();
-  location.href = "https://xdtip.in/";
-}
-
-// 🔥 START THE SYSTEM
-init();
-
-  // Trigger the Replay Alert via backend (Tracker Version)
-async function replayLastAlert() {
-  console.log("1. Replay button clicked!");
-  
-  if (!currentUsername) {
-    console.error("ERROR: currentUsername is empty!");
-    alert("SYSTEM ALERT: Your profile is initializing. Please wait.");
-    return;
-  }
-  
-  console.log("2. Sending request to server for username:", currentUsername);
-
-  try {
-    const response = await fetch('/replay-alert', { 
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: currentUsername })
-    });
-    
-    console.log("3. Server responded with status:", response.status);
-    
-    const data = await response.json();
-    console.log("4. Server data received:", data);
-    
-    if (data.success) {
-      console.log("5. Replay Alert Fired successfully to OBS!");
-    } else {
-      alert("SERVER SAID: " + data.message); 
-    }
-  } catch (err) {
-    console.error("FATAL ERROR during fetch:", err);
-    alert("Network error. Is the server online?");
-  }
-}
-
-  function updateSystemStatus(connected) {
+// 3. UI HUD LOGIC
+function updateSystemStatus(connected) {
     const dot = document.getElementById("statusDot");
     const text = document.getElementById("statusText");
     const container = document.getElementById("ytStatus");
@@ -605,45 +357,90 @@ async function replayLastAlert() {
     }
 }
 
-async function init() {
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) { location.href = "/login"; return; }
-    userId = user.id;
+// 4. DATA FETCHING (Tips & Payouts)
+async function fetchTips(myUsername) {
+    const tableBody = document.getElementById("transmissionBody");
+    const { data: tips } = await client.from("tips").select("*").ilike("username", myUsername).order("created_at", { ascending: false });
 
-    const { data: profile } = await client.from("users").select("*").eq("id", userId).single();
-    if (profile) {
-        currentUsername = profile.username;
-        updateSystemStatus(profile.youtube_connected);
-        
-        if (profile.username) {
-            setText("username", "@" + profile.username);
-            setVal("tipLink", `https://xdtip.in/${profile.username}`);
-        }
-        if (profile.logo) document.getElementById("avatar").style.backgroundImage = `url(${profile.logo})`;
-        // Add more logic for balance, alert links, etc.
+    if (tips && tips.length > 0) {
+        tableBody.innerHTML = "";
+        tips.forEach(tip => {
+            const date = new Date(tip.created_at).toLocaleString();
+            tableBody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td style="color:var(--neon-cyan); font-weight:bold;">${tip.sender_name || 'ANON'}</td>
+                    <td style="color:#8fa1d0; font-style:italic;">"${tip.message || '---'}"</td>
+                    <td style="color:var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
+                    <td style="font-size:11px; opacity:0.6;">${date}</td>
+                </tr>
+            `);
+        });
     }
 }
 
+async function fetchPayouts(uid) {
+    const tableBody = document.getElementById("payoutBody");
+    if(!tableBody) return;
+    const { data: payouts } = await client.from("payouts").select("*").eq("user_id", uid).order("created_at", { ascending: false });
+
+    if (payouts && payouts.length > 0) {
+        tableBody.innerHTML = "";
+        payouts.forEach(p => {
+            const date = new Date(p.created_at).toLocaleString();
+            let statusColor = p.status === 'failed' ? 'var(--neon-magenta)' : 'var(--neon-cyan)';
+            tableBody.insertAdjacentHTML('beforeend', `
+                <tr>
+                    <td style="font-size:11px; opacity:0.6;">${date}</td>
+                    <td style="color:var(--neon-magenta); font-weight:bold;">₹${p.amount}</td>
+                    <td style="color:${statusColor}; font-family:'Share Tech Mono'; font-size:11px;">${p.status.toUpperCase()}</td>
+                </tr>
+            `);
+        });
+    }
+}
+
+// 5. DIAGNOSTICS & ACTIONS
+async function sendTestAlert() {
+    if (!currentUsername) return alert("Initializing...");
+    const res = await fetch('/test-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername, tipper: "System Test", amount: 99, message: "Sync confirmed!" })
+    });
+    if (res.ok) console.log("Test Fired!");
+}
+
+async function replayLastAlert() {
+    if (!currentUsername) return;
+    await fetch('/replay-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUsername })
+    });
+}
+
 async function syncYoutubeToken() {
-    const { data, error } = await client.auth.getSession();
-    const session = data?.session;
-    if (session && session.provider_refresh_token) {
+    const { data } = await client.auth.getSession();
+    if (data?.session?.provider_refresh_token) {
         await client.from('users').update({ 
-            youtube_refresh_token: session.provider_refresh_token,
+            youtube_refresh_token: data.session.provider_refresh_token,
             youtube_connected: true 
-        }).eq('id', session.user.id);
+        }).eq('id', data.session.user.id);
         updateSystemStatus(true);
     }
 }
 
+// 6. HELPERS
 function setText(id, text) { const el = document.getElementById(id); if (el) { el.innerText = text; el.classList.remove("loading"); } }
 function setVal(id, text) { const el = document.getElementById(id); if (el) { el.value = text; el.classList.remove("loading"); } }
-function copy(id) { const el = document.getElementById(id); el.select(); document.execCommand("copy"); }
-async function logout() { await client.auth.signOut(); location.href = "/"; }
+function copy(id) { const el = document.getElementById(id); if(el) { el.select(); document.execCommand("copy"); } }
+function openKyc() { document.getElementById("kycPopup").style.display = "flex"; }
+function closeKyc() { document.getElementById("kycPopup").style.display = "none"; }
+async function logout() { await client.auth.signOut(); location.href = "https://xdtip.in/"; }
 
+// BOOT
 init();
 syncYoutubeToken();
-  
 </script>
 
 <div class="footer">
