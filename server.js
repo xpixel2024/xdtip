@@ -41,8 +41,15 @@ app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public/da
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public/terms.html")));
-app.get("/youtube", (req, res) => res.sendFile(path.join(__dirname, "public/youtube.html")));
+// 1. ADD THIS SPECIFIC ROUTE FIRST
+app.get('/youtube', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'youtube.html'));
+});
 
+// 2. YOUR EXISTING USER ROUTE (Keep this BELOW the one above)
+app.get('/:username', async (req, res) => {
+    // ... your code that looks for the user in the database ...
+});
 
 // ===================
 // SAVE TIP API
