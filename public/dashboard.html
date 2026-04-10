@@ -184,6 +184,16 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
+
+<div class="card col" id="ytStatus">
+    <h3>ENGINE STATUS</h3>
+    <div style="display: flex; align-items: center; padding: 5px 0;">
+        <span id="statusDot" class="status-dot dot-offline"></span>
+        <span id="statusText" class="status-text text-offline">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
+    </div>
+    <p style="font-family: 'Share Tech Mono'; font-size: 11px; color: #55678a; margin-top: 5px;">> UPLINK: YouTube API v3</p>
+  </div>
+  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
@@ -591,6 +601,65 @@ async function replayLastAlert() {
     alert("Network error. Is the server online?");
   }
 }
+
+  function updateSystemStatus(connected) {
+    const dot = document.getElementById("statusDot");
+    const text = document.getElementById("statusText");
+    const container = document.getElementById("ytStatus");
+
+    if (!dot || !text || !container) return;
+
+    if (connected) {
+        dot.className = "status-dot dot-online pulse-animation";
+        text.className = "status-text text-online";
+        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
+        container.style.borderLeft = "3px solid #00ff88";
+    } else {
+        dot.className = "status-dot dot-offline";
+        text.className = "status-text text-offline";
+        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
+        container.style.borderLeft = "3px solid #ff0055";
+    }
+}
+
+async function init() {
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) { location.href = "/login"; return; }
+    userId = user.id;
+
+    const { data: profile } = await client.from("users").select("*").eq("id", userId).single();
+    if (profile) {
+        currentUsername = profile.username;
+        updateSystemStatus(profile.youtube_connected);
+        
+        if (profile.username) {
+            setText("username", "@" + profile.username);
+            setVal("tipLink", `https://xdtip.in/${profile.username}`);
+        }
+        if (profile.logo) document.getElementById("avatar").style.backgroundImage = `url(${profile.logo})`;
+        // Add more logic for balance, alert links, etc.
+    }
+}
+
+async function syncYoutubeToken() {
+    const { data, error } = await client.auth.getSession();
+    const session = data?.session;
+    if (session && session.provider_refresh_token) {
+        await client.from('users').update({ 
+            youtube_refresh_token: session.provider_refresh_token,
+            youtube_connected: true 
+        }).eq('id', session.user.id);
+        updateSystemStatus(true);
+    }
+}
+
+function setText(id, text) { const el = document.getElementById(id); if (el) { el.innerText = text; el.classList.remove("loading"); } }
+function setVal(id, text) { const el = document.getElementById(id); if (el) { el.value = text; el.classList.remove("loading"); } }
+function copy(id) { const el = document.getElementById(id); el.select(); document.execCommand("copy"); }
+async function logout() { await client.auth.signOut(); location.href = "/"; }
+
+init();
+syncYoutubeToken();
   
 </script>
 
