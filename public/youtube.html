@@ -74,17 +74,21 @@
     }
 
     async function connectYoutube() {
-        const { data, error } = await client.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent'
-                },
-                scopes: 'https://www.googleapis.com/auth/youtube.readonly'
-            }
-        });
-    }
+    const { data, error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            // This ensures you land back here, not the home page
+            redirectTo: 'https://xdtip.in/youtube', 
+            queryParams: {
+                access_type: 'offline',
+                prompt: 'consent'
+            },
+            scopes: 'https://www.googleapis.com/auth/youtube.readonly'
+        }
+    });
+
+    if (error) console.error("OAuth Error:", error.message);
+}
 
     async function disconnect() {
         const { data: { user } } = await client.auth.getUser();
