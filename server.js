@@ -547,6 +547,30 @@ async function pollYouTubeLive(user) {
     }
 }
 
+async function pollYouTubeSubs(user) {
+    const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+    oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
+    const youtube = google.google.youtube({ version: 'v3', auth: oauth2Client });
+
+    try {
+        const res = await youtube.subscriptions.list({
+            mine: true,
+            part: 'snippet',
+            maxResults: 1
+        });
+
+        const latestSub = res.data.items[0]?.snippet.title;
+
+        if (latestSub && latestSub !== user.last_sub_name) {
+            io.emit(`alert-${user.obs_token}`, {
+                type: 'subscriber',
+                name: latestSub
+            });
+
+            await supabase.from('users').update({ last_sub_name: latestSub }).eq('id', user.id);
+        }
+    } catch (e) { console.error("SUB_POLL_ERROR", e.message); }
+}
 
 // ===================
 // START SERVER
