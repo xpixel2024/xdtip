@@ -619,26 +619,7 @@ function updateSystemStatus(profile) {
 // Call this inside your existing init() after you fetch the profile
 // Example: if (profile) { ... updateStatusDisplay(profile); }
 
-async function syncYoutubeToken() {
-    const { data: { session } } = await client.auth.getSession();
-
-    if (session && session.provider_refresh_token) {
-        const { error } = await client
-            .from('users')
-            .update({ 
-                youtube_refresh_token: session.provider_refresh_token,
-                youtube_connected: true 
-            })
-            .eq('id', session.user.id);
-            
-        if (!error) {
-            updateSystemStatus(true);
-            alert("UPLINK SECURED: Refresh Token Stored.");
-        }
-    } else {
-        alert("SYNC FAILED: Please Log Out and Log In again to grant permissions.");
-    }
-}
+syncYoutubeToken
 
 // ===================
 // START SERVER
