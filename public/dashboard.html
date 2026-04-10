@@ -109,6 +109,50 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
 .footer a { color: #55678a; text-decoration: none; transition: 0.3s; }
 .footer a:hover { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
 
+  /* Live Status Indicator Styling */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 15px;
+    background: rgba(0, 243, 255, 0.03);
+    border: 1px solid rgba(0, 243, 255, 0.15);
+    border-radius: 2px;
+    margin-left: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    transition: all 0.5s ease;
+}
+
+.status-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    position: relative;
+}
+
+/* Green Pulse for Live */
+.dot-online {
+    background-color: #00ff88;
+    box-shadow: 0 0 10px #00ff88;
+}
+
+.pulse-animation {
+    animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+}
+
+.text-online { color: #00ff88; text-shadow: 0 0 5px rgba(0, 255, 136, 0.3); }
+
+/* Red for Offline */
+.dot-offline { background-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
+.text-offline { color: #ff0055; }
+
 </style>
 </head>
 <body>
@@ -120,6 +164,10 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
   <img src="/logo.png" 
        style="height: 50px; filter: drop-shadow(0 0 8px var(--neon-cyan));"
        onerror="this.style.display='none';">
+</div>
+  <div class="status-indicator" id="ytStatus">
+    <span class="status-dot dot-offline" id="statusDot"></span>
+    <span class="status-text text-offline" id="statusText">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
 </div>
   <div class="nav-brand">XD_TIP // SYS</div>
   <div class="nav-links">
