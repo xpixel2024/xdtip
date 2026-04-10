@@ -2,11 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XDTip | Professional OBS Engagement Tools</title>
-<meta name="description" content="High-performance engagement software for streamers. Integrate real-time YouTube alerts and broadcast telemetry seamlessly.">
-
-<link rel="icon" type="image/png" href="images/logo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
@@ -25,10 +21,8 @@ body {
   background-color: var(--bg-dark);
   color: #c8d3f5;
   overflow-x: hidden;
-  line-height: 1.6;
 }
 
-/* CRT Scanlines and Grid Background */
 .bgfx {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
@@ -53,43 +47,40 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 40px;
-  background: rgba(0,0,0,0.8);
+  padding: 15px 40px;
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.05) 0%, transparent 100%);
   border-bottom: 2px solid var(--neon-cyan);
-  backdrop-filter: blur(10px);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  backdrop-filter: blur(5px);
 }
 
-/* LOGO STYLING */
-.logo-container {
+.logo {
+  color: var(--neon-cyan);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
+
+.nav {
   display: flex;
   align-items: center;
-  text-decoration: none;
-}
-
-.logo-img {
-  height: 50px; /* Adjusted for navbar height */
-  filter: drop-shadow(0 0 8px var(--neon-cyan));
-  transition: transform 0.3s ease;
-}
-
-.logo-img:hover {
-  transform: scale(1.05);
+  font-family: 'Share Tech Mono', monospace;
 }
 
 .nav a {
   color: #7b8ebd;
   margin-left: 30px;
   text-decoration: none;
-  font-family: 'Share Tech Mono', monospace;
   font-size: 15px;
   text-transform: uppercase;
   transition: 0.3s;
 }
 
-.nav a:hover { color: var(--neon-cyan); }
+.nav a:hover {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 8px var(--neon-cyan);
+}
 
 .login-btn {
   margin-left: 30px;
@@ -97,146 +88,247 @@ body {
   border: 1px solid var(--neon-cyan);
   color: var(--neon-cyan);
   clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-  text-decoration: none;
+  transition: 0.3s;
+  box-shadow: inset 0 0 5px rgba(0, 243, 255, 0.2);
+}
+
+.login-btn:hover {
+  background: var(--neon-cyan);
+  color: #000 !important;
+  text-shadow: none !important;
+  box-shadow: 0 0 15px var(--neon-cyan);
 }
 
 .hero {
   text-align: center;
-  padding: 120px 20px 60px;
+  padding: 140px 20px 100px;
+  position: relative;
 }
 
 .hero h1 {
-  font-size: 64px;
-  text-transform: uppercase;
-  color: #fff;
+  font-size: 72px;
+  line-height: 1.1;
   margin-bottom: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-.highlight { color: var(--neon-cyan); text-shadow: 0 0 15px var(--neon-cyan); }
+.hero .highlight {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 15px var(--neon-cyan);
+}
 
-.fee-badge {
+.hero .fee {
   color: var(--neon-magenta);
   font-family: 'Share Tech Mono', monospace;
+  font-weight: bold;
+  margin-top: 20px;
+  font-size: 20px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 0, 234, 0.5);
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; text-shadow: 0 0 20px var(--neon-magenta); }
+  100% { opacity: 0.8; }
+}
+
+.hero p {
+  color: #8fa1d0;
+  margin-top: 25px;
+  font-size: 22px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.buttons {
+  margin-top: 45px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.btn {
+  padding: 15px 35px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
   font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  position: relative;
+  overflow: hidden;
+  transition: 0.3s;
+  clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+}
+
+.primary {
+  background: rgba(0, 243, 255, 0.1);
+  color: var(--neon-cyan);
+  border: 1px solid var(--neon-cyan);
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.3);
+}
+
+.primary:hover {
+  background: var(--neon-cyan);
+  color: #000;
+  box-shadow: 0 0 25px var(--neon-cyan);
+}
+
+.secondary {
+  background: transparent;
   border: 1px solid var(--neon-magenta);
-  padding: 5px 15px;
-  display: inline-block;
-  margin-bottom: 20px;
+  color: var(--neon-magenta);
+  box-shadow: inset 0 0 10px rgba(255, 0, 234, 0.1);
+}
+
+.secondary:hover {
+  background: var(--neon-magenta);
+  color: #000;
+  box-shadow: 0 0 25px var(--neon-magenta);
 }
 
 .features {
   display: flex;
-  justify-content: center;
-  gap: 30px;
   flex-wrap: wrap;
-  padding: 50px 20px;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px 20px 100px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .card {
-  width: 320px;
+  width: 300px;
   background: var(--panel-bg);
-  border: 1px solid rgba(0, 243, 255, 0.1);
-  padding: 30px;
+  border: 1px solid rgba(0, 243, 255, 0.15);
+  padding: 35px 25px;
+  backdrop-filter: blur(10px);
   position: relative;
+  transition: 0.3s;
 }
 
-.card h3 { color: var(--neon-cyan); text-transform: uppercase; margin-top: 0; }
+.card::before, .card::after {
+  content: ''; 
+  position: absolute; 
+  width: 20px; 
+  height: 20px; 
+  border: 2px solid var(--neon-cyan); 
+  transition: 0.3s;
+}
+.card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+.card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
-.transparency-section {
-  max-width: 900px;
-  margin: 60px auto;
-  padding: 40px;
-  background: rgba(0, 243, 255, 0.02);
-  border: 1px dashed rgba(0, 243, 255, 0.3);
-  text-align: left;
+.card:hover {
+  border-color: rgba(0, 243, 255, 0.5);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(0, 243, 255, 0.1);
 }
 
-.transparency-section h2 {
-  font-family: 'Share Tech Mono', monospace;
-  color: var(--neon-cyan);
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-.transparency-section li {
+.card h3 {
+  margin-top: 0;
   margin-bottom: 15px;
+  color: #fff;
+  font-size: 24px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.card p {
+  color: #8fa1d0;
   font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .footer {
   text-align: center;
-  padding: 40px;
-  border-top: 1px solid rgba(0, 243, 255, 0.1);
-  background: #000;
+  padding: 30px;
+  border-top: 1px solid rgba(0, 243, 255, 0.2);
+  background: rgba(0, 0, 0, 0.8);
+  color: #55678a;
   font-family: 'Share Tech Mono', monospace;
   font-size: 14px;
+  letter-spacing: 1px;
 }
 
-.footer a { color: #55678a; text-decoration: none; margin: 0 10px; }
-.footer a:hover { color: var(--neon-cyan); }
+.footer a {
+    color: #55678a;
+    text-decoration: none;
+    margin: 0 10px;
+}
 </style>
 </head>
 <body>
 
 <div class="bgfx"></div>
 
-<nav class="navbar">
-  <a href="/" class="logo-container">
-    <img src="images/logo.png" alt="XDTIP LOGO" class="logo-img">
-  </a>
+<div class="navbar">
+  <div class="logo">XDTIP // SYS.CORE</div>
   <div class="nav">
-    <a href="/">Home</a>
-    <a href="/learn">Architecture</a>
+    <a href="index.html">Home</a>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="learn.html">Learn</a>
+    <a href="contact.html">Contact</a>
     <a href="/login" class="login-btn">LOGIN_AUTH</a>
   </div>
-</nav>
+</div>
 
-<header class="hero">
-  <div class="fee-badge">[ SYSTEM_NOTE: 6% SERVICE FEE ]</div>
-  <h1>Professional <span class="highlight">Broadcast</span><br>Engagement Software</h1>
-  <p style="max-width: 700px; margin: 20px auto; color: #8fa1d0; font-size: 18px;">
-    High-performance OBS toolkit providing real-time telemetry, 
-    custom alert overlays, and automated engagement protocols for live creators.
+<div class="hero">
+  <h1>
+    High-Performance OBS<br>
+    <span class="highlight">Engagement Tools.</span>
+  </h1>
+
+  <div class="fee">
+    [ SYSTEM NOTE: 6% PLATFORM SERVICE FEE ]
+  </div>
+
+  <p>
+    An advanced software suite for Indian broadcasters to<br>
+    trigger real-time telemetry and visual alert overlays.
   </p>
-  <div style="margin-top: 40px;">
-    <a href="/login" style="text-decoration:none; padding: 15px 40px; background: var(--neon-cyan); color: #000; font-weight: bold; clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);">INITIALIZE DASHBOARD</a>
-  </div>
-</header>
 
-<section class="features">
-  <div class="card">
-    <h3>⚡ Alert Overlays</h3>
-    <p>WebSocket-driven visual triggers for OBS/Streamlabs that display viewer interactions with 0ms latency.</p>
-  </div>
-  <div class="card">
-    <h3>☁️ SaaS Command</h3>
-    <p>A cloud-hosted dashboard to customize engagement logic, manage widgets, and monitor broadcast telemetry.</p>
-  </div>
-  <div class="card">
-    <h3>📊 Analytics HUD</h3>
-    <p>In-depth insights into community growth and software service settlements in real-time.</p>
-  </div>
-</section>
+  <div class="buttons">
+    <a href="learn.html" style="text-decoration:none;">
+      <button class="btn secondary">VIEW ARCHITECTURE</button>
+    </a>
 
-<section class="transparency-section">
-    <h2>[ DATA_USAGE_TRANSPARENCY ]</h2>
-    <p>XDTIP utilizes the <strong>YouTube Data API v3</strong> to enhance the broadcast experience. We are transparent about your data:</p>
-    <ul>
-        <li><strong>> NEW_SUBSCRIBER_POLLING:</strong> Our server checks your public subscriber list to trigger visual alerts on your stream overlay.</li>
-        <li><strong>> LIVE_ENGAGEMENT_MONITORING:</strong> We access active live chat IDs to identify Super Chat events for real-time telemetry display.</li>
-        <li><strong>> PRIVACY_PROTOCOL:</strong> We do not store private messages, passwords, or personal data. We only process the metadata required for overlay triggers.</li>
-    </ul>
-    <p style="font-size: 12px; color: var(--neon-magenta);">* This application is a software utility and is not affiliated with or endorsed by Google Inc. or YouTube.</p>
-</section>
+    <a href="login.html" style="text-decoration:none;">
+      <button class="btn primary">INITIALIZE UPLINK</button>
+    </a>
+  </div>
+</div>
 
-<footer class="footer">
-  © 2026 XDTIP ENGINE • All Rights Reserved<br><br>
-  <a href="/terms">TERMS OF SERVICE</a> • 
-  <a href="/privacy">PRIVACY POLICY</a> • 
-  <a href="/refund">REFUND POLICY</a> • 
-  <a href="/contact">SUPPORT_UPLINK</a>
-</footer>
+<div class="features">
+  <div class="card">
+    <h3 style="color:var(--neon-cyan);">⚡ Real-time Alerts</h3>
+    <p>WebSocket-driven OBS overlays that visually broadcast community interactions to your audience instantly.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="color:var(--neon-cyan);">☁️ SaaS Dashboard</h3>
+    <p>Manage your engagement telemetry, customize alert logic, and monitor broadcast performance from one HUD.</p>
+  </div>
+
+  <div class="card">
+    <h3 style="color:var(--neon-cyan);">📊 Creator Analytics</h3>
+    <p>Track engagement payload data and manage software service settlements directly from your command center.</p>
+  </div>
+</div>
+
+<div class="footer">
+  © 2026 XDTip • 
+  <a href="terms.html">TERMS</a> • 
+  <a href="privacy.html">PRIVACY</a> • 
+  <a href="refund.html">REFUND POLICY</a>
+</div>
 
 </body>
 </html>
