@@ -407,6 +407,58 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
         res.status(500).json({ error: "Failed to approve KYC" });
     }
 });
+
+const { google } = require('googleapis');
+
+// Check YouTube every 2 minutes (saves API Quota)
+setInterval(async () => {
+    try {
+        const { data: activeUsers } = await supabase
+            .from('users')
+            .select('id, youtube_refresh_token, last_sub_name')
+            .eq('youtube_connected', true);
+
+        if (!activeUsers) return;
+
+        for (const user of activeUsers) {
+            const oauth2Client = new google.auth.OAuth2(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET
+            );
+            
+            oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
+            const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
+            // Fetch latest subscriber
+            const res = await youtube.subscriptions.list({
+                part: 'snippet',
+                mine: true,
+                maxResults: 1
+            });
+
+            const currentSub = res.data.items[0]?.snippet.title;
+
+            // If the name has changed, trigger an alert!
+            if (currentSub && currentSub !== user.last_sub_name) {
+                console.log(`NEW SUB DETECTED: ${currentSub}`);
+
+                // Emit to the specific creator's overlay
+                io.emit(`alert-${user.id}`, { 
+                    type: 'youtube_sub', 
+                    name: currentSub 
+                });
+
+                // Update DB to prevent duplicate alerts
+                await supabase.from('users')
+                    .update({ last_sub_name: currentSub })
+                    .eq('id', user.id);
+            }
+        }
+    } catch (e) {
+        console.error("YT Polling Error:", e.message);
+    }
+}, 120000);
+
 // ===================
 // START SERVER
 // ===================
