@@ -1,12 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <meta charset="UTF-8">
 <title>XDTip | Authorization Gateway</title>
-
-<link rel="icon" type="image/png" href="images/logo.png">
 
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
@@ -24,7 +20,7 @@ body {
   font-family: 'Rajdhani', sans-serif;
   background-color: var(--bg-dark);
   color: #c8d3f5;
-  overflow: hidden; 
+  overflow: hidden; /* Prevents scrollbars on login screen */
 }
 
 /* CRT Scanlines and Grid Background */
@@ -50,7 +46,6 @@ body {
 
 .container {
   display: flex;
-  flex-direction: column;
   height: 100vh;
   justify-content: center;
   align-items: center;
@@ -58,13 +53,7 @@ body {
   z-index: 1;
 }
 
-/* Logo placement above card */
-.login-logo {
-    height: 100px;
-    margin-bottom: 30px;
-    filter: drop-shadow(0 0 15px var(--neon-cyan));
-}
-
+/* Terminal Authorization Card */
 .card {
   background: var(--panel-bg);
   border: 1px solid rgba(0, 243, 255, 0.2);
@@ -76,6 +65,7 @@ body {
   position: relative;
 }
 
+/* Sci-fi corner brackets */
 .card::before, .card::after {
   content: ''; 
   position: absolute; 
@@ -86,6 +76,7 @@ body {
 .card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
 .card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
 
+/* System Header Top Left */
 .sys-label {
   position: absolute;
   top: -12px;
@@ -119,6 +110,7 @@ p {
   margin-bottom: 35px;
 }
 
+/* Login Button */
 .btn {
   margin-top: 10px;
   padding: 15px;
@@ -145,6 +137,7 @@ p {
   text-shadow: none;
 }
 
+/* Scanning line animation inside card */
 .scanline {
   position: absolute;
   top: 0;
@@ -172,8 +165,6 @@ p {
 <div class="bgfx"></div>
 
 <div class="container">
-  <img src="images/logo.png" alt="XDTIP" class="login-logo">
-
   <div class="card">
     <div class="scanline"></div>
     <div class="sys-label">SECURE_LOGIN</div>
@@ -195,30 +186,13 @@ const client = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
 );
 
-// --- GLOBAL SESSION CHECK ---
-// If the user is already logged in, don't show the login page, just send them to dashboard
-async function checkExistingSession() {
-    const { data: { user } } = await client.auth.getUser();
-    if (user) {
-        window.location.href = "/dashboard";
-    }
-}
-checkExistingSession();
-
 async function login() {
-  console.log("Uplink initiated with YouTube permissions...");
+  console.log("Uplink initiated...");
 
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      // 1. We ask for YouTube access immediately
-      scopes: 'https://www.googleapis.com/auth/youtube.readonly',
-      queryParams: {
-        access_type: 'offline', // 2. This ensures we get a REFRESH_TOKEN for the backend
-        prompt: 'consent',      // 3. This forces the "YouTube" checkbox to appear every time
-      },
-      // 4. We send them to the dashboard after they click 'Allow'
-      redirectTo: "https://xdtip.in/dashboard"
+      redirectTo: "http://xdtip.in/dashboard"
     }
   });
 
