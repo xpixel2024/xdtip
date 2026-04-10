@@ -500,6 +500,22 @@ async function submitKyc() {
   btn.disabled = false;
 }
 
+  // GOOD CODE
+async function syncYoutubeToken() { 
+    const { data: { session } } = await client.auth.getSession(); 
+    if (session && session.provider_refresh_token) {
+        await client
+            .from('users')
+            .update({ 
+                youtube_refresh_token: session.provider_refresh_token,
+                youtube_connected: true 
+            })
+            .eq('id', session.user.id);
+            
+        updateSystemStatus(true);
+    }
+}
+
   // Trigger the Test Alert via backend
 async function sendTestAlert() {
   if (!currentUsername) {
