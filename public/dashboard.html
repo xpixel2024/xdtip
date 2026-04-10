@@ -591,6 +591,24 @@ async function replayLastAlert() {
     alert("Network error. Is the server online?");
   }
 }
+
+  async function syncYoutubeToken() {
+    const { data: { session } } = await client.auth.getSession();
+
+    if (session && session.provider_refresh_token) {
+        // Save the token to the database
+        await client
+            .from('users')
+            .update({ 
+                youtube_refresh_token: session.provider_refresh_token,
+                youtube_connected: true 
+            })
+            .eq('id', session.user.id);
+            
+        console.log("YouTube uplink secured.");
+    }
+}
+syncYoutubeToken();
   
 </script>
 
