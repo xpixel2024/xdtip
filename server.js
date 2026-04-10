@@ -595,31 +595,28 @@ setInterval(async () => {
     if (users) users.forEach(user => pollYouTubeSubs(user));
 }, 120000);
 
-// Add this logic inside your init() function after fetching profile data
-function updateSystemStatus(profile) {
-    const dot = document.getElementById("statusDot");
-    const text = document.getElementById("statusText");
-    const container = document.getElementById("ytStatus");
+// --- KEEP THIS IN SERVER.JS ---
 
-    if (profile.youtube_connected) {
-        // Change to Green/Online
-        dot.className = "status-dot dot-online pulse-animation";
-        text.className = "status-text text-online";
-        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
-        container.style.borderColor = "rgba(0, 255, 136, 0.3)";
-    } else {
-        // Keep Red/Offline
-        dot.className = "status-dot dot-offline";
-        text.className = "status-text text-offline";
-        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
-        container.style.borderColor = "rgba(255, 0, 85, 0.3)";
+// High Speed Loop (Chat/SuperChat) - 10 Seconds
+setInterval(async () => {
+    try {
+        const { data: users } = await supabase.from('users').select('*').eq('youtube_connected', true);
+        if (users) users.forEach(user => pollYouTubeLive(user));
+    } catch (err) {
+        console.error("Backend Chat Loop Error:", err.message);
     }
-}
+}, 10000);
 
-// Call this inside your existing init() after you fetch the profile
-// Example: if (profile) { ... updateStatusDisplay(profile); }
+// Slow Loop (Subscribers) - 2 Minutes
+setInterval(async () => {
+    try {
+        const { data: users } = await supabase.from('users').select('*').eq('youtube_connected', true);
+        if (users) users.forEach(user => pollYouTubeSubs(user));
+    } catch (err) {
+        console.error("Backend Sub Loop Error:", err.message);
+    }
+}, 120000);
 
-syncYoutubeToken
 
 // ===================
 // START SERVER
