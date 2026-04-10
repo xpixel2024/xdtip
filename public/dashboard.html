@@ -610,6 +610,29 @@ async function replayLastAlert() {
     alert("Network error. Is the server online?");
   }
 }
+
+  function updateSystemStatus(connected) {
+    const dot = document.getElementById("statusDot");
+    const text = document.getElementById("statusText");
+    const container = document.getElementById("ytStatus");
+
+    // This "if" prevents the "Unresponsive/Crash" bug
+    if (!dot || !text || !container) return;
+
+    if (connected) {
+        dot.className = "status-dot dot-online pulse-animation";
+        text.className = "status-text text-online";
+        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
+        container.style.borderLeft = "3px solid #00ff88";
+        container.style.borderColor = "rgba(0, 255, 136, 0.3)";
+    } else {
+        dot.className = "status-dot dot-offline";
+        text.className = "status-text text-offline";
+        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
+        container.style.borderLeft = "3px solid #ff0055";
+        container.style.borderColor = "rgba(255, 0, 85, 0.3)";
+    }
+}
   
 </script>
 
