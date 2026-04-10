@@ -584,6 +584,27 @@ setInterval(async () => {
     if (users) users.forEach(user => pollYouTubeSubs(user));
 }, 120000);
 
+async function updateStatusDisplay(profile) {
+    const statusBox = document.getElementById("ytStatus");
+    
+    if (profile.youtube_connected) {
+        statusBox.innerHTML = `
+            <span class="dot pulse"></span>
+            <span class="status-text">SYSTEM STATUS: [ 🟢 MONITORING LIVE ]</span>
+        `;
+        statusBox.style.borderColor = "rgba(0, 255, 136, 0.3)";
+    } else {
+        statusBox.innerHTML = `
+            <span class="dot" style="background-color: #ff0055; box-shadow: 0 0 10px #ff0055;"></span>
+            <span class="status-text" style="color: #ff0055;">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
+        `;
+        statusBox.style.borderColor = "rgba(255, 0, 85, 0.3)";
+    }
+}
+
+// Call this inside your existing init() after you fetch the profile
+// Example: if (profile) { ... updateStatusDisplay(profile); }
+
 // ===================
 // START SERVER
 // ===================
