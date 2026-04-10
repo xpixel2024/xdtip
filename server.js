@@ -14,7 +14,6 @@ const supabase = createClient(
 );
 
 // MIDDLEWARE
-app.use(express.static('public'));
 app.use(express.json());
 // It's good practice to add urlencoded if you ever use standard HTML forms
 app.use(express.urlencoded({ extended: true })); 
@@ -42,42 +41,6 @@ app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public/da
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public/terms.html")));
-// --- STATIC PAGES (Put it here!) ---
-app.get('/youtube', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'youtube.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-// --- DYNAMIC USER PAGES (Always keep this below the others) ---
-app.get('/:username', async (req, res) => {
-    // This route captures EVERYTHING after the /
-    // If /youtube is above this, it works. 
-    // If /youtube is below this, it fails.
-});
-
-// --- 1. STATIC ASSETS (Highest Priority) ---
-// This ensures your logo loads instantly without hitting the database
-app.get('/logo.png', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'images', 'logo.png'));
-});
-
-// --- 2. STATIC PAGES ---
-app.get('/youtube', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'youtube.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
-
-// --- 3. DYNAMIC USER PAGES (Always keep this at the VERY BOTTOM) ---
-app.get('/:username', async (req, res) => {
-    // Everything that didn't match logo.png, youtube, or dashboard 
-    // will be treated as a username here.
-});
 
 
 // ===================
