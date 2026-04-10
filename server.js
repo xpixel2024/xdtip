@@ -572,6 +572,18 @@ async function pollYouTubeSubs(user) {
     } catch (e) { console.error("SUB_POLL_ERROR", e.message); }
 }
 
+// High Speed Loop (Chat/SuperChat) - 10 Seconds
+setInterval(async () => {
+    const { data: users } = await supabase.from('users').select('*').eq('youtube_connected', true);
+    if (users) users.forEach(user => pollYouTubeLive(user));
+}, 10000);
+
+// Slow Loop (Subscribers) - 2 Minutes
+setInterval(async () => {
+    const { data: users } = await supabase.from('users').select('*').eq('youtube_connected', true);
+    if (users) users.forEach(user => pollYouTubeSubs(user));
+}, 120000);
+
 // ===================
 // START SERVER
 // ===================
