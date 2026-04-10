@@ -107,6 +107,54 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
 .footer a { color: #55678a; text-decoration: none; transition: 0.3s; }
 .footer a:hover { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
 
+  /* --- YOUTUBE STATUS HUD STYLES --- */
+.status-dot {
+    height: 10px;
+    width: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 12px;
+    transition: all 0.3s ease;
+}
+
+/* Red / Offline State */
+.dot-offline {
+    background-color: #ff0055;
+    box-shadow: 0 0 10px #ff0055;
+}
+.text-offline {
+    color: #ff0055;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+/* Green / Online State */
+.dot-online {
+    background-color: #00ff88;
+    box-shadow: 0 0 10px #00ff88;
+}
+.text-online {
+    color: #00ff88;
+    font-family: 'Share Tech Mono', monospace;
+    text-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
+}
+
+/* The Live Pulse Animation */
+.pulse-animation {
+    animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.5; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Layout logic for the Card */
+#ytStatus {
+    border-left: 3px solid #ff0055; /* Starts red, JS turns it green */
+    transition: border-color 0.5s ease;
+}
+
 </style>
 </head>
 <body>
@@ -184,6 +232,18 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
+
+<div class="card col" id="ytStatus">
+        <h3>ENGINE STATUS</h3>
+        <div style="display: flex; align-items: center; padding: 10px 0;">
+            <span id="statusDot" class="status-dot dot-offline"></span>
+            <span id="statusText" class="status-text text-offline">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
+        </div>
+        <p style="font-family: 'Share Tech Mono'; font-size: 11px; color: #55678a; margin: 0;">
+            > UPLINK: YouTube API v3
+        </p>
+    </div>
+  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
