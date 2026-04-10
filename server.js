@@ -420,54 +420,48 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
 
 const { google } = require('googleapis');
 
-// Check YouTube every 2 minutes (saves API Quota)
-setInterval(async () => {
-    try {
-        const { data: activeUsers } = await supabase
-            .from('users')
-            .select('id, youtube_refresh_token, last_sub_name')
-            .eq('youtube_connected', true);
+async function checkYoutubeSubscribers(user) {
+  try {
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
 
-        if (!activeUsers) return;
+    oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
 
-        for (const user of activeUsers) {
-            const oauth2Client = new google.auth.OAuth2(
-                process.env.GOOGLE_CLIENT_ID,
-                process.env.GOOGLE_CLIENT_SECRET
-            );
-            
-            oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
-            const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
-            // Fetch latest subscriber
-            const res = await youtube.subscriptions.list({
-                part: 'snippet',
-                mine: true,
-                maxResults: 1
-            });
+    // Fetch the most recent subscriber
+    const response = await youtube.subscriptions.list({
+      part: 'snippet',
+      mine: true,
+      maxResults: 1,
+    });
 
-            const currentSub = res.data.items[0]?.snippet.title;
+    const latestSubscriber = response.data.items[0]?.snippet.title;
 
-            // If the name has changed, trigger an alert!
-            if (currentSub && currentSub !== user.last_sub_name) {
-                console.log(`NEW SUB DETECTED: ${currentSub}`);
+    // Logic: If there's a new name we haven't seen before, trigger alert
+    if (latestSubscriber && latestSubscriber !== user.last_sub_name) {
+      console.log(`Alert: New YouTube Sub for ${user.username}: ${latestSubscriber}`);
 
-                // Emit to the specific creator's overlay
-                io.emit(`alert-${user.id}`, { 
-                    type: 'youtube_sub', 
-                    name: currentSub 
-                });
+      // 1. Emit the alert via Socket.io to the Overlay
+      // Replace 'io' with your socket variable name
+      io.emit(`alert-${user.obs_token}`, {
+        type: 'youtube_sub',
+        name: latestSubscriber,
+        message: 'New Subscriber!'
+      });
 
-                // Update DB to prevent duplicate alerts
-                await supabase.from('users')
-                    .update({ last_sub_name: currentSub })
-                    .eq('id', user.id);
-            }
-        }
-    } catch (e) {
-        console.error("YT Polling Error:", e.message);
+      // 2. Update Supabase so we don't alert the same person twice
+      await supabase
+        .from('users')
+        .update({ last_sub_name: latestSubscriber })
+        .eq('id', user.id);
     }
-}, 120000);
+  } catch (error) {
+    console.error(`YouTube API Error for ${user.username}:`, error.message);
+  }
+}
 
 // ===================
 // START SERVER
