@@ -1,454 +1,415 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>XDTip HUD | Commander</title>
+const express = require("express");
+const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+const app = express();
 
-<style>
-:root {
-  --neon-cyan: #00f3ff;
-  --neon-magenta: #ff00ea;
-  --bg-dark: #03040b;
-  --panel-bg: rgba(5, 8, 20, 0.85);
-  --grid-color: rgba(0, 243, 255, 0.05);
-}
+// 1. DYNAMIC PORT FOR RENDER (CRITICAL)
+const PORT = process.env.PORT || 3000;
 
-body {
-  margin: 0;
-  font-family: 'Rajdhani', sans-serif;
-  background-color: var(--bg-dark);
-  color: #c8d3f5;
-  overflow-x: hidden;
-}
-
-/* CRT Scanlines and Grid Background */
-.bgfx {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-  background-image: 
-    linear-gradient(var(--grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-.bgfx::after {
-  content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-  background-size: 100% 4px, 3px 100%; pointer-events: none;
-}
-
-/* TOP NAV */
-.nav {
-  display: flex; justify-content: space-between; align-items: center; padding: 0 40px;
-  background: rgba(0, 0, 0, 0.9); border-bottom: 2px solid var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2); height: 70px;
-}
-.nav-brand { font-size: 26px; font-weight: 700; letter-spacing: 2px; color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
-.nav-links { display: flex; height: 100%; }
-.nav-links a { display: flex; align-items: center; padding: 0 25px; color: #7b8ebd; text-decoration: none; font-family: 'Share Tech Mono', monospace; font-size: 15px; text-transform: uppercase; transition: 0.3s; border-bottom: 2px solid transparent; }
-.nav-links a:hover, .nav-links a.active { color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); border-bottom: 2px solid var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
-.nav-actions { display: flex; align-items: center; }
-
-/* PROFILE */
-.profile { text-align: center; padding: 40px; position: relative; }
-.avatar { width: 130px; height: 130px; margin: auto; background: #111; background-size: cover; background-position: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); position: relative; z-index: 2; }
-.avatar-wrapper { position: relative; width: 140px; height: 140px; margin: auto; display: flex; justify-content: center; align-items: center; background: var(--neon-cyan); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); box-shadow: 0 0 20px var(--neon-cyan); }
-.username { font-size: 32px; font-weight: 700; margin-top: 15px; color: #fff; text-shadow: 0 0 10px var(--neon-cyan); letter-spacing: 2px; }
-
-/* INPUTS */
-input { padding: 12px; background: rgba(0, 0, 0, 0.6); border: 1px solid #333; border-left: 3px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; margin-top: 10px; border-radius: 0; outline: none; transition: 0.3s; }
-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
-input[type="file"] { font-family: 'Rajdhani', sans-serif; color: #fff; }
-.file-label { display: block; text-align: left; margin-left: 5%; margin-top: 10px; margin-bottom: -5px; font-family: 'Share Tech Mono', monospace; color: var(--neon-magenta); font-size: 12px; }
-
-/* BUTTONS */
-.btn { padding: 10px 20px; border: none; cursor: pointer; margin-top: 10px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; position: relative; overflow: hidden; transition: 0.2s; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
-.green { background: transparent; color: var(--neon-cyan); border: 1px solid var(--neon-cyan); box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.2); }
-.green:hover:not(:disabled) { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
-.red { background: transparent; color: var(--neon-magenta); border: 1px solid var(--neon-magenta); box-shadow: inset 0 0 10px rgba(255, 0, 234, 0.2); }
-.red:hover:not(:disabled) { background: var(--neon-magenta); color: #000; box-shadow: 0 0 15px var(--neon-magenta); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* LAYOUT & CARDS */
-.section { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-.card { background: var(--panel-bg); border: 1px solid rgba(0, 243, 255, 0.15); padding: 25px; backdrop-filter: blur(10px); position: relative; }
-.card::before, .card::after { content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--neon-cyan); transition: 0.3s; }
-.card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
-.card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-.card:hover::before, .card:hover::after { width: 30px; height: 30px; }
-
-h3 { margin-top: 0; color: #fff; font-weight: 600; letter-spacing: 1.5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; text-transform: uppercase; }
-h2 { font-family: 'Share Tech Mono', monospace; font-size: 38px; color: var(--neon-cyan); margin: 10px 0; text-shadow: 0 0 10px rgba(0, 243, 255, 0.4); }
-
-.row { display: flex; gap: 25px; margin-bottom: 25px;}
-.col { flex: 1; }
-.linkbox { display: flex; }
-.linkbox input {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #333;
-    border-left: 3px solid var(--neon-cyan);
-    color: var(--neon-cyan);
-    padding: 12px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 13px;
-    outline: none;
-}
-
-.linkbox button {
-    border-radius: 0;
-    margin-left: -1px; /* Joins the button to the input */
-}
-/* TABLE */
-table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 14px; }
-td, th { padding: 12px 8px; border-bottom: 1px solid rgba(0, 243, 255, 0.1); text-align: left; }
-th { color: var(--neon-magenta); font-family: 'Rajdhani', sans-serif; font-size: 16px; letter-spacing: 1px; }
-tr:hover { background: rgba(0, 243, 255, 0.05); }
-
-/* LOADING ANIMATION */
-.loading { animation: pulse-glow 1.5s infinite; }
-@keyframes pulse-glow { 0% { opacity: 0.5; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 10px var(--neon-cyan); } 100% { opacity: 0.5; text-shadow: none; } }
-
-/* POPUP */
-.popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 5, 0.9); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 999; }
-.popup-box { background: var(--panel-bg); border: 1px solid var(--neon-cyan); box-shadow: 0 0 30px rgba(0, 243, 255, 0.2); padding: 40px; width: 320px; text-align: center; position: relative; }
-.popup-box::before { content: 'SYSTEM OVERRIDE'; position: absolute; top: -10px; left: 20px; background: var(--bg-dark); padding: 0 10px; font-size: 12px; color: var(--neon-cyan); }
-.popup-box input { width: 90%; margin-bottom: 15px; }
-
-/* FOOTER */
-.footer { text-align: center; padding: 30px; border-top: 1px solid rgba(0, 243, 255, 0.2); background: rgba(0, 0, 0, 0.8); color: #55678a; font-family: 'Share Tech Mono', monospace; font-size: 14px; letter-spacing: 1px; margin-top: 40px; }
-.footer a { color: #55678a; text-decoration: none; transition: 0.3s; }
-.footer a:hover { color: var(--neon-cyan); text-shadow: 0 0 8px var(--neon-cyan); }
-  /* System Status UI */
-.status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 10px; }
-.dot-online { background-color: #00ff88; box-shadow: 0 0 10px #00ff88; }
-.dot-offline { background-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
-.pulse-animation { animation: status-pulse 2s infinite; }
-@keyframes status-pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-.text-online { color: #00ff88; font-family: 'Share Tech Mono'; }
-.text-offline { color: #ff0055; font-family: 'Share Tech Mono'; }
-
-</style>
-</head>
-<body>
-
-<div class="bgfx"></div>
-
-<div class="nav">
-  <div class="nav-brand">XD_TIP // SYS</div>
-  <div class="nav-links">
-    <a href="index">HOME</a>
-    <a href="dashboard" class="active">DASHBOARD</a>
-    <a href="learn">LEARN</a>
-    <a href="contact">CONTACT US</a>
-  </div>
-  <div class="nav-actions">
-    <button class="btn red" onclick="logout()">[ TERMINATE ]</button>
-  </div>
-</div>
-
-<div class="profile">
-  <div class="avatar-wrapper">
-    <div class="avatar" id="avatar"></div>
-  </div>
-  <div class="username loading" id="username">INITIALIZING...</div>
-
-  <input id="nameInput" placeholder="> Enter Designation"><br>
-  <input type="file" id="logoUpload" accept="image/*" style="margin-top:15px; margin-bottom: 15px;"><br>
-
-  <button class="btn green" id="uploadDataBtn" onclick="saveProfile()">UPLOAD DATA</button>
-</div>
-
-<div class="section row">
-  <div class="card col">
-    <h3>CREDITS</h3>
-    <h2 id="balance" class="loading">₹--</h2>
-  </div>
-
-  <div class="card col" id="kycSection">
-    <h3>SECURITY CLEARANCE (KYC)</h3>
-    <button class="btn green" onclick="openKyc()">INITIATE KYC</button>
-    <p id="kycStatus" class="loading" style="margin-top:15px; font-family:'Share Tech Mono';">STATUS: UNKNOWN</p>
-  </div>
-
-  <div class="card col" id="upiSection" style="display:none;">
-    <h3>LINKED NODE (UPI)</h3>
-    <p id="upi" style="font-family:'Share Tech Mono'; font-size: 20px; color: var(--neon-cyan);"></p>
-  </div>
-</div>
-
-<div class="section">
-  <h3>BROADCAST PROTOCOLS</h3>
-  <div class="row">
-    <div class="card col">
-      <h3>ALERT HUB</h3>
-      <div class="linkbox">
-        <input id="alertLink" class="loading" readonly>
-        <button class="btn green" onclick="copy('alertLink')">COPY</button>
-      </div>
-    </div>
-    <div class="card col">
-      <h3>TELEMETRY (STATS)</h3>
-      <div class="linkbox">
-        <input id="statsLink" class="loading" readonly>
-        <button class="btn green" onclick="copy('statsLink')">COPY</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="section row">
-  <div class="card col">
-    <h3>PUBLIC ENDPOINT (TIP PAGE)</h3>
-    <div class="linkbox">
-      <input id="tipLink" class="loading" readonly>
-      <button class="btn green" onclick="copy('tipLink')">COPY</button>
-    </div>
-  </div>
-
-<div class="card col" id="ytStatus">
-    <h3>ENGINE STATUS</h3>
-    <div style="display: flex; align-items: center; padding: 5px 0;">
-        <span id="statusDot" class="status-dot dot-offline"></span>
-        <span id="statusText" class="status-text text-offline">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span>
-    </div>
-    <p style="font-family: 'Share Tech Mono'; font-size: 11px; color: #55678a; margin-top: 5px;">> UPLINK: YouTube API v3</p>
-  </div>
-  
-  <div class="card col">
-    <h3>DIAGNOSTICS</h3>
-    <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
-    <button class="btn red" onclick="replayLastAlert()">REPLAY LAST</button>
-  </div>
-</div>
-
-<div class="section row">
-  <div class="card col">
-    <h3>INCOMING TRANSMISSIONS</h3>
-    <table>
-      <thead>
-        <tr><th>SOURCE</th><th>PAYLOAD</th><th>CREDITS</th><th>TIMESTAMP</th></tr>
-      </thead>
-      <tbody id="transmissionBody">
-        <tr><td colspan="4" style="text-align:center;">SCANNING...</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <div class="card col">
-    <h3>OUTGOING LOGS (PAYOUTS)</h3>
-    <table>
-      <thead>
-        <tr><th>TIMESTAMP</th><th>CREDITS</th><th>STATUS / TX_HASH</th></tr>
-      </thead>
-      <tbody id="payoutBody">
-        <tr><td colspan="3" style="text-align:center; opacity:0.5;">LOADING LOGS...</td></tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<div class="popup" id="kycPopup">
-  <div class="popup-box">
-    <h3 style="color:var(--neon-cyan);">KYC UPLINK</h3>
-    <input id="fullName" placeholder="> Legal Designation"><br>
-    <input id="upiInput" placeholder="> UPI Identifier"><br>
-    
-    <span class="file-label">> ATTACH PAN DOC</span>
-    <input type="file" id="panUpload" accept="image/*,application/pdf"><br>
-    
-    <div style="margin-top: 15px;">
-      <button class="btn green" id="transmitKycBtn" onclick="submitKyc()">TRANSMIT</button>
-      <button class="btn red" onclick="closeKyc()">ABORT</button>
-    </div>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// 1. INITIALIZE SUPABASE
-const client = window.supabase.createClient(
-    "https://yohrquotbdmsxfeyxtqr.supabase.co", 
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+// 🔥 SUPABASE SETUP
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-let userId = "";
-let currentUsername = "";
+// MIDDLEWARE
+app.use(express.json());
+// It's good practice to add urlencoded if you ever use standard HTML forms
+app.use(express.urlencoded({ extended: true })); 
+app.use(express.static(path.join(__dirname, "public")));
 
-// 2. CORE BOOT FUNCTION
-async function init() {
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) { location.href = "/login"; return; }
-    userId = user.id;
+// VIEW ENGINE
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+// ===================
+// CLEAN .html URL
+// ===================
+// Redirects /login.html to /login
+app.get(/\.html$/, (req, res) => {
+  const clean = req.path.replace(".html", "");
+  res.redirect(301, clean);
+});
+
+// ===================
+// STATIC ROUTES
+// ===================
+app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public/index.html")));
+app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "public/login.html")));
+app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public/dashboard.html")));
+app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
+app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
+app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public/terms.html")));
+
+
+// ===================
+// SAVE TIP API
+// ===================
+app.post("/api/tip", async (req, res) => {
+    const { username, name, message, amount, payment_id } = req.body;
 
     try {
-        const { data: profile } = await client.from("users").select("*").eq("id", userId).single();
-        
-        if (profile) {
-            currentUsername = profile.username;
-            
-            // UI Updates
-            updateSystemStatus(profile.youtube_connected);
-            
-            // --- OBS TOKEN ENGINE ---
-            let obsToken = profile.obs_token;
-            if (!obsToken) {
-                obsToken = crypto.randomUUID();
-                await client.from("users").update({ obs_token: obsToken }).eq("id", userId);
-            }
-
-            // Fill Broadcast Inputs
-            setVal("alertLink", `https://xdtip.in/alert/${obsToken}`);
-            setVal("statsLink", `https://xdtip.in/stats-overlay/${obsToken}`);
-
-            if (profile.username) {
-                setText("username", "@" + profile.username);
-                setVal("tipLink", `https://xdtip.in/${profile.username}`);
-                
-                // Load Tables
-                fetchTips(profile.username);
-                fetchPayouts(userId);
-            }
-
-            if (profile.logo) {
-                const avatarEl = document.getElementById("avatar");
-                if(avatarEl) avatarEl.style.backgroundImage = `url(${profile.logo})`;
-            }
-
-            if(document.getElementById("balance")) {
-                setText("balance", "₹" + (profile.balance || 0));
-            }
-
-            // Handle KYC Status Display
-            if (profile.kyc === "pending") {
-                setText("kycStatus", "VERIFICATION IN PROGRESS...");
-            } else if (profile.kyc === true || profile.kyc === "true") {
-                const kycSection = document.getElementById("kycSection");
-                const upiSection = document.getElementById("upiSection");
-                if(kycSection) kycSection.style.display = "none";
-                if(upiSection) {
-                    upiSection.style.display = "block";
-                    document.getElementById("upi").innerText = profile.upi || "NO UPI LINKED";
+        const { error } = await supabase
+            .from("tips")
+            .insert([
+                {
+                    username: username,
+                    sender_name: name,
+                    message: message,
+                    amount: parseFloat(amount), // Ensure amount is a number
+                    payment_id: payment_id
                 }
-            }
+            ]);
+
+        if (error) throw error;
+        res.json({ success: true });
+
+    } catch (err) {
+        console.error("Save Tip Error:", err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ===================
+// USERNAME ROUTE (Dynamic Tip Page)
+// ===================
+app.get("/:username", async (req, res) => {
+  try {
+    const username = req.params.username;
+
+    // 🚫 Block system routes
+    const blocked = ["login", "dashboard", "admin", "api", "index"];
+    if (blocked.includes(username.toLowerCase())) {
+      return res.redirect("/");
+    }
+
+    // ilike makes it case-insensitive (e.g., /xdfunYT and /xdfunyt both work)
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .ilike("username", username)
+      .maybeSingle();
+
+    if (error || !data) {
+      console.log(`User [${username}] not found.`);
+      return res.status(404).send("User not found");
+    }
+
+    res.render("tip", { user: data });
+
+  } catch (err) {
+    console.error("Route Error:", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+// ===================
+// OBS ALERT SYSTEM
+// ===================
+app.get('/alert/:token', async (req, res) => {
+    const { token } = req.params;
+    
+    try {
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('overlay_theme, username')
+            .eq('obs_token', token)
+            .single();
+
+        if (error || !user) {
+            return res.status(404).send("INVALID OBS TOKEN");
         }
-    } catch (e) {
-        console.error("BOOT_FAILURE:", e);
+
+        // Determine which file to send based on theme
+        let fileToSend = 'alert.html'; 
+        if (user.overlay_theme === 'neon') fileToSend = 'alert_neon.html';
+        if (user.overlay_theme === 'minimal') fileToSend = 'alert_minimal.html';
+        if (user.overlay_theme === 'vip') fileToSend = 'alert_vip.html';
+        if (user.overlay_theme === 'basic') fileToSend = 'alert_basic.html';
+        if (user.overlay_theme === 'frost') fileToSend = 'alert_frost.html';
+
+        res.sendFile(path.join(__dirname, 'public', fileToSend));
+
+    } catch (err) {
+        console.error("Overlay Error:", err);
+        res.status(500).send("SERVER ERROR");
     }
-}
+});
 
-// 3. UI HUD LOGIC
-function updateSystemStatus(connected) {
-    const dot = document.getElementById("statusDot");
-    const text = document.getElementById("statusText");
-    const container = document.getElementById("ytStatus");
+// ==========================
+// M. TEST ALERT (Supabase Broadcast)
+// ==========================
+app.post('/test-alert', async (req, res) => {
+    const { username, tipper, amount, message } = req.body;
 
-    if (!dot || !text || !container) return;
-
-    if (connected) {
-        dot.className = "status-dot dot-online pulse-animation";
-        text.className = "status-text text-online";
-        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
-        container.style.borderLeft = "3px solid #00ff88";
-    } else {
-        dot.className = "status-dot dot-offline";
-        text.className = "status-text text-offline";
-        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
-        container.style.borderLeft = "3px solid #ff0055";
+    if (!username) {
+        return res.status(400).json({ error: "Username is required" });
     }
-}
 
-// 4. DATA FETCHING (Tips & Payouts)
-async function fetchTips(myUsername) {
-    const tableBody = document.getElementById("transmissionBody");
-    const { data: tips } = await client.from("tips").select("*").ilike("username", myUsername).order("created_at", { ascending: false });
+    const alertData = {
+        tipper: tipper || "Test Commander",
+        amount: amount || 69,
+        message: message || "System uplink successful! 🚀"
+    };
 
-    if (tips && tips.length > 0) {
-        tableBody.innerHTML = "";
-        tips.forEach(tip => {
-            const date = new Date(tip.created_at).toLocaleString();
-            tableBody.insertAdjacentHTML('beforeend', `
-                <tr>
-                    <td style="color:var(--neon-cyan); font-weight:bold;">${tip.sender_name || 'ANON'}</td>
-                    <td style="color:#8fa1d0; font-style:italic;">"${tip.message || '---'}"</td>
-                    <td style="color:var(--neon-magenta); font-weight:bold;">₹${tip.amount}</td>
-                    <td style="font-size:11px; opacity:0.6;">${date}</td>
-                </tr>
-            `);
-        });
-    }
-}
-
-async function fetchPayouts(uid) {
-    const tableBody = document.getElementById("payoutBody");
-    if(!tableBody) return;
-    const { data: payouts } = await client.from("payouts").select("*").eq("user_id", uid).order("created_at", { ascending: false });
-
-    if (payouts && payouts.length > 0) {
-        tableBody.innerHTML = "";
-        payouts.forEach(p => {
-            const date = new Date(p.created_at).toLocaleString();
-            let statusColor = p.status === 'failed' ? 'var(--neon-magenta)' : 'var(--neon-cyan)';
-            tableBody.insertAdjacentHTML('beforeend', `
-                <tr>
-                    <td style="font-size:11px; opacity:0.6;">${date}</td>
-                    <td style="color:var(--neon-magenta); font-weight:bold;">₹${p.amount}</td>
-                    <td style="color:${statusColor}; font-family:'Share Tech Mono'; font-size:11px;">${p.status.toUpperCase()}</td>
-                </tr>
-            `);
-        });
-    }
-}
-
-// 5. DIAGNOSTICS & ACTIONS
-async function sendTestAlert() {
-    if (!currentUsername) return alert("Initializing...");
-    const res = await fetch('/test-alert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUsername, tipper: "System Test", amount: 99, message: "Sync confirmed!" })
+    const roomName = `alert-room-${username.toLowerCase()}`;
+    const channel = supabase.channel(roomName);
+    
+    channel.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+            await channel.send({
+                type: 'broadcast',
+                event: 'test-tip',
+                payload: alertData
+            });
+            
+            // 🔥 FIX: Wait half a second before hanging up so the message actually sends!
+            setTimeout(() => {
+                supabase.removeChannel(channel);
+            }, 500);
+        }
     });
-    if (res.ok) console.log("Test Fired!");
-}
 
-async function replayLastAlert() {
-    if (!currentUsername) return;
-    await fetch('/replay-alert', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUsername })
-    });
-}
+    console.log(`📡 Broadcast sent to OBS for ${username}: ${alertData.tipper}`);
+    res.json({ success: true, message: "Test Alert Broadcasted!" });
+});
 
-async function syncYoutubeToken() {
-    const { data } = await client.auth.getSession();
-    if (data?.session?.provider_refresh_token) {
-        await client.from('users').update({ 
-            youtube_refresh_token: data.session.provider_refresh_token,
-            youtube_connected: true 
-        }).eq('id', data.session.user.id);
-        updateSystemStatus(true);
+// ==========================
+// N. REPLAY LAST ALERT (Supabase Broadcast)
+// ==========================
+app.post('/replay-alert', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        console.error("Replay Error: No username provided by dashboard");
+        return res.status(400).json({ error: "Username is required" });
     }
-}
 
-// 6. HELPERS
-function setText(id, text) { const el = document.getElementById(id); if (el) { el.innerText = text; el.classList.remove("loading"); } }
-function setVal(id, text) { const el = document.getElementById(id); if (el) { el.value = text; el.classList.remove("loading"); } }
-function copy(id) { const el = document.getElementById(id); if(el) { el.select(); document.execCommand("copy"); } }
-function openKyc() { document.getElementById("kycPopup").style.display = "flex"; }
-function closeKyc() { document.getElementById("kycPopup").style.display = "none"; }
-async function logout() { await client.auth.signOut(); location.href = "https://xdtip.in/"; }
+    try {
+        console.log(`[Replay] Searching for last tip for user: ${username}`);
 
-// BOOT
-init();
-syncYoutubeToken();
-</script>
+        // 1. Fetch the LAST tip safely without using the buggy .single() method
+        const { data: lastTipData, error } = await supabase
+            .from('tips')
+            .select('sender_name, amount, message')
+            .ilike('username', username) 
+            .order('created_at', { ascending: false }) 
+            .limit(1); 
 
-<div class="footer">
-  © 2026 XDTip • 
-  <a href="terms.html">TERMS</a> • 
-  <a href="privacy.html">PRIVACY</a> • 
-  <a href="refund.html">REFUND POLICY</a>
-</div>
+        // 2. Handle specific database errors
+        if (error) {
+            console.error("[Replay] Supabase Database Error:", error);
+            return res.status(500).json({ success: false, message: "Database connection error." });
+        }
 
-</body>
-</html>
+        // 3. Handle empty database (if you haven't received a real tip yet!)
+        if (!lastTipData || lastTipData.length === 0) {
+            console.log(`[Replay] No tips found for ${username}`);
+            return res.status(404).json({ success: false, message: "No recent tips found in your history." });
+        }
+
+        // 4. Extract the exact tip from the array
+        const lastTip = lastTipData[0];
+
+        // 5. Prepare Alert Data
+        const alertData = {
+            tipper: lastTip.sender_name || "Anonymous",
+            amount: lastTip.amount,
+            message: lastTip.message
+        };
+
+        // 6. Broadcast to OBS
+        const roomName = `alert-room-${username.toLowerCase()}`;
+        const channel = supabase.channel(roomName);
+
+        channel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'test-tip', 
+                    payload: alertData
+                });
+                
+                // Wait half a second before hanging up so the message sends
+                setTimeout(() => {
+                    supabase.removeChannel(channel);
+                }, 500);
+            }
+        });
+
+        console.log(`[Replay] SUCCESS! Replayed tip: ₹${alertData.amount} from ${alertData.tipper}`);
+        res.json({ success: true, message: "Last tip replayed successfully!" });
+
+    } catch (err) {
+        console.error("[Replay] Critical Server Error:", err);
+        res.status(500).json({ success: false, error: "Server Error during replay" });
+    }
+});
+
+// ==========================
+// H. STATS API (Data Fetcher)
+// ==========================
+app.get('/stats/:token', async (req, res) => {
+    const { token } = req.params;
+    try {
+        // 1. Find the username attached to this OBS token
+        const { data: user, error: userErr } = await supabase
+            .from('users')
+            .select('username')
+            .eq('obs_token', token)
+            .single();
+
+        if (userErr || !user) return res.status(404).json({ error: "User not found" });
+
+        // 2. Fetch Latest 3 Tips (using username, not receiver_id)
+        const { data: latest } = await supabase
+            .from('tips')
+            .select('sender_name, amount')
+            .ilike('username', user.username) // Safe case-insensitive match
+            .order('created_at', { ascending: false })
+            .limit(3);
+
+        // 3. Fetch Top 3 Tips
+        const { data: top } = await supabase
+            .from('tips')
+            .select('sender_name, amount')
+            .ilike('username', user.username)
+            .order('amount', { ascending: false })
+            .limit(3);
+
+        res.json({ top: top || [], latest: latest || [] });
+    } catch (err) {
+        console.error("Stats API Error:", err);
+        res.status(500).json({ error: "Stats failed" });
+    }
+});
+
+// ==========================
+// S. SERVE STATS OVERLAY
+// ==========================
+app.get('/stats-overlay/:token', async (req, res) => {
+    const { token } = req.params;
+    
+    try {
+        const { data: user } = await supabase
+            .from('users')
+            .select('overlay_theme')
+            .eq('obs_token', token)
+            .single();
+
+        let fileToSend = 'stats.html'; 
+        if (user && user.overlay_theme) {
+            if (user.overlay_theme === 'neon') fileToSend = 'stats_neon.html';
+            if (user.overlay_theme === 'minimal') fileToSend = 'stats_minimal.html';
+            if (user.overlay_theme === 'vip') fileToSend = 'stats_vip.html';
+            if (user.overlay_theme === 'basic') fileToSend = 'stats_basic.html';
+            if (user.overlay_theme === 'frost') fileToSend = 'stats_frost.html';
+        }
+        
+        // FIX: Must include the 'public' folder in the path!
+        res.sendFile(path.join(__dirname, 'public', fileToSend));
+    } catch (err) {
+        console.error("Serve Stats Error:", err);
+        res.status(500).send("Error loading stats overlay.");
+    }
+});
+
+// ==========================
+// ADMIN PANEL ROUTES
+// ==========================
+
+// 1. Serve the Admin HTML Page
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/admin.html'));
+});
+
+// 2. Secure Admin Data API (Robust Signed URL Version)
+app.post('/api/admin/data', async (req, res) => {
+    const { email } = req.body;
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
+
+    const safeInputEmail = (email || "").toLowerCase().trim();
+    const safeAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
+
+    if (!safeInputEmail || safeInputEmail !== safeAdminEmail) {
+        return res.status(403).json({ error: "Access Denied." });
+    }
+
+    try {
+        const { data: users } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+        const { data: tips } = await supabase.from('tips').select('*').order('created_at', { ascending: false });
+
+        // 🔥 IMPROVED: Generate Signed URLs
+        const usersWithSignedUrls = await Promise.all((users || []).map(async (u) => {
+            if (u.pan_url) {
+                // Logic: Extract just the filename (e.g., pan_abc123.jpg) 
+                // regardless of whether the DB has a full URL or just a name.
+                const pathParts = u.pan_url.split('/');
+                const fileName = pathParts[pathParts.length - 1];
+
+                const { data: signedData, error: signedError } = await supabase
+                    .storage
+                    .from('kyc_docs')
+                    .createSignedUrl(fileName, 900); 
+
+                if (signedError) {
+                    console.error(`Error signing URL for ${fileName}:`, signedError.message);
+                    return { ...u, pan_url: null };
+                }
+
+                return { ...u, pan_url: signedData.signedUrl };
+            }
+            return u;
+        }));
+
+        res.json({
+            success: true,
+            totalUsers: users.length,
+            totalTips: tips ? tips.length : 0,
+            totalRevenue: (tips || []).reduce((sum, tip) => sum + (Number(tip.amount) || 0), 0),
+            fraudCount: (tips || []).filter(tip => parseFloat(tip.amount) >= 5000).length,
+            users: usersWithSignedUrls,
+            tips: tips || [],
+            fraudLogs: (tips || []).filter(tip => parseFloat(tip.amount) >= 5000)
+        });
+    } catch (err) {
+        console.error("Admin API Error:", err);
+        res.status(500).json({ error: "Server Error" });
+    }
+});
+
+// 3. KYC Approval Route (Bulletproof Email Check + lowercase 'true')
+app.post('/api/admin/approve-kyc', async (req, res) => {
+    const { email, targetUsername } = req.body;
+    const ADMIN_EMAIL = "bkonai00@gmail.com"; 
+
+    // 🔥 FIX: Force both to lowercase and remove hidden spaces
+    const safeInputEmail = (email || "").toLowerCase().trim();
+    const safeAdminEmail = ADMIN_EMAIL.toLowerCase().trim();
+
+    if (!safeInputEmail || safeInputEmail !== safeAdminEmail) {
+        return res.status(403).json({ error: "Access Denied." });
+    }
+
+    try {
+        // Explicitly save the lowercase text 'true'
+        const { error } = await supabase
+            .from('users')
+            .update({ kyc: 'true' }) 
+            .eq('username', targetUsername);
+
+        if (error) throw error;
+
+        res.json({ success: true, message: `${targetUsername} KYC is now verified!` });
+    } catch (err) {
+        console.error("KYC Error:", err);
+        res.status(500).json({ error: "Failed to approve KYC" });
+    }
+});
+// ===================
+// START SERVER
+// ===================
+app.listen(PORT, () => {
+  console.log(`🚀 Terminal Online: http://localhost:${PORT}`);
+});
