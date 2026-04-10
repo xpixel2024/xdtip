@@ -83,9 +83,22 @@ h2 { font-family: 'Share Tech Mono', monospace; font-size: 38px; color: var(--ne
 .row { display: flex; gap: 25px; margin-bottom: 25px;}
 .col { flex: 1; }
 .linkbox { display: flex; }
-.linkbox input { flex: 1; border-right: none; }
-.linkbox button { margin-left: 0; border-radius: 0; clip-path: none; }
+.linkbox input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #333;
+    border-left: 3px solid var(--neon-cyan);
+    color: var(--neon-cyan);
+    padding: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    outline: none;
+}
 
+.linkbox button {
+    border-radius: 0;
+    margin-left: -1px; /* Joins the button to the input */
+}
 /* TABLE */
 table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono', monospace; font-size: 14px; }
 td, th { padding: 12px 8px; border-bottom: 1px solid rgba(0, 243, 255, 0.1); text-align: left; }
