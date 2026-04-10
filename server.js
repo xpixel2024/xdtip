@@ -41,6 +41,16 @@ app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public/da
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public/terms.html")));
+// Tell the server to serve static files from the 'images' folder
+app.use('/images', express.static('images'));
+
+// OR, if the logo is in the root:
+app.use('/logo.png', express.static('logo.png'));
+
+// Your existing username route MUST stay BELOW the static lines
+app.get('/:username', async (req, res) => {
+   // ... your "User not found" logic ...
+});
 
 
 // ===================
