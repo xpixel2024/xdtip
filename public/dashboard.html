@@ -184,14 +184,6 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
-
-<div class="card col" id="ytStatus"> <h3>ENGINE STATUS</h3>
-    <div style="margin: 10px 0; display: flex; align-items: center;">
-        <span id="statusDot" class="status-dot dot-offline"></span> <span id="statusText" class="status-text text-offline">SYSTEM STATUS: [ 🔴 YT_OFFLINE ]</span> </div>
-</div>
-    <p style="font-family: 'Share Tech Mono'; font-size: 11px; color: #55678a; margin: 0;">> UPLINK: YouTube API v3</p>
-  </div>
-  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
@@ -272,19 +264,6 @@ async function init() {
     if (profile) {
       currentUsername = profile.username;
 
-      // 🔥 ADD THIS LINE RIGHT HERE:
-      updateSystemStatus(profile.youtube_connected);
-
-      // --- Rest of your existing logic ---
-      if (profile.username) {
-        setText("username", "@" + profile.username);
-        // ... (remaining setup)
-      }
-    }
-  } catch (e) {
-    console.error("DASHBOARD_BOOT_ERROR:", e);
-  }
-}
       // Update Profile UI
       if (profile.username) {
         setText("username", "@" + profile.username);
@@ -318,30 +297,6 @@ async function init() {
           .update({ overlay_theme: "basic" })
           .eq("id", userId);
       }
-
-      .status-dot {
-    height: 10px;
-    width: 10px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 10px;
-}
-
-.dot-online { background-color: #00ff88; box-shadow: 0 0 10px #00ff88; }
-.dot-offline { background-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
-
-.pulse-animation {
-    animation: status-pulse 2s infinite;
-}
-
-@keyframes status-pulse {
-    0% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(1.1); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
-.text-online { color: #00ff88; font-family: 'Share Tech Mono'; }
-.text-offline { color: #ff0055; font-family: 'Share Tech Mono'; }
 
       // 🔥 POPULATE LINKS WITH CORRECT DATA
       setVal("statsLink", `https://xdtip.in/stats-overlay/${obsToken}`);
@@ -545,22 +500,6 @@ async function submitKyc() {
   btn.disabled = false;
 }
 
-  // GOOD CODE
-async function syncYoutubeToken() { 
-    const { data: { session } } = await client.auth.getSession(); 
-    if (session && session.provider_refresh_token) {
-        await client
-            .from('users')
-            .update({ 
-                youtube_refresh_token: session.provider_refresh_token,
-                youtube_connected: true 
-            })
-            .eq('id', session.user.id);
-            
-        updateSystemStatus(true);
-    }
-}
-
   // Trigger the Test Alert via backend
 async function sendTestAlert() {
   if (!currentUsername) {
@@ -593,31 +532,7 @@ async function sendTestAlert() {
     console.error("Failed to send test alert:", err);
   }
 }
-  function updateSystemStatus(connected) {
-    const dot = document.getElementById("statusDot");
-    const text = document.getElementById("statusText");
-    const container = document.getElementById("ytStatus");
 
-    // --- SAFETY CHECK: Prevents code from crashing if IDs are missing ---
-    if (!dot || !text || !container) {
-        console.warn("System Status elements not found on this page.");
-        return; 
-    }
-
-    if (connected) {
-        // Change to Green/Online Pulse
-        dot.className = "status-dot dot-online pulse-animation";
-        text.className = "status-text text-online";
-        text.innerText = "SYSTEM STATUS: [ 🟢 MONITORING LIVE ]";
-        container.style.borderLeft = "3px solid #00ff88"; 
-    } else {
-        // Keep Red/Offline
-        dot.className = "status-dot dot-offline";
-        text.className = "status-text text-offline";
-        text.innerText = "SYSTEM STATUS: [ 🔴 YT_OFFLINE ]";
-        container.style.borderLeft = "3px solid #ff0055";
-    }
-}
 // HELPERS
 function setText(id, text) {
   const el = document.getElementById(id);
