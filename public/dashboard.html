@@ -277,6 +277,19 @@ async function init() {
     if (profile) {
       currentUsername = profile.username;
 
+      // 🔥 ADD THIS LINE RIGHT HERE:
+      updateSystemStatus(profile.youtube_connected);
+
+      // --- Rest of your existing logic ---
+      if (profile.username) {
+        setText("username", "@" + profile.username);
+        // ... (remaining setup)
+      }
+    }
+  } catch (e) {
+    console.error("DASHBOARD_BOOT_ERROR:", e);
+  }
+}
       // Update Profile UI
       if (profile.username) {
         setText("username", "@" + profile.username);
