@@ -249,6 +249,29 @@ body {
   line-height: 1.5;
 }
 
+  /* TRANSPARENCY SECTION (CRITICAL FOR GOOGLE) */
+.transparency-section {
+  max-width: 900px;
+  margin: 60px auto;
+  padding: 40px;
+  background: rgba(0, 243, 255, 0.02);
+  border: 1px dashed rgba(0, 243, 255, 0.3);
+  text-align: left;
+}
+
+.transparency-section h2 {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--neon-cyan);
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.transparency-section li {
+  margin-bottom: 15px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+}
+
 .footer {
   text-align: center;
   padding: 30px;
@@ -329,6 +352,16 @@ body {
     <p>Track engagement payload data and manage software service settlements directly from your command center.</p>
   </div>
 </div>
+  <section class="transparency-section">
+    <h2>[ DATA_USAGE_TRANSPARENCY ]</h2>
+    <p>XDTIP utilizes the <strong>YouTube Data API v3</strong> to enhance the broadcast experience. We are transparent about your data:</p>
+    <ul>
+        <li><strong>> NEW_SUBSCRIBER_POLLING:</strong> Our server checks your public subscriber list to trigger visual alerts on your stream overlay.</li>
+        <li><strong>> LIVE_ENGAGEMENT_MONITORING:</strong> We access active live chat IDs to identify Super Chat events for real-time telemetry display.</li>
+        <li><strong>> PRIVACY_PROTOCOL:</strong> We do not store private messages, passwords, or personal data. We only process the metadata required for overlay triggers.</li>
+    </ul>
+    <p style="font-size: 12px; color: var(--neon-magenta);">* This application is a software utility and is not affiliated with or endorsed by Google Inc. or YouTube.</p>
+</section>
 
 <div class="footer">
   © 2026 XDTip • 
