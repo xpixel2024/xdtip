@@ -195,17 +195,29 @@ const client = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
 );
 
+// --- GLOBAL SESSION CHECK ---
+// If the user is already logged in, don't show the login page, just send them to dashboard
+async function checkExistingSession() {
+    const { data: { user } } = await client.auth.getUser();
+    if (user) {
+        window.location.href = "/dashboard";
+    }
+}
+checkExistingSession();
+
 async function login() {
   console.log("Uplink initiated with YouTube permissions...");
 
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
     options: {
+      // 1. We ask for YouTube access immediately
       scopes: 'https://www.googleapis.com/auth/youtube.readonly',
       queryParams: {
-        access_type: 'offline', 
-        prompt: 'consent',     
+        access_type: 'offline', // 2. This ensures we get a REFRESH_TOKEN for the backend
+        prompt: 'consent',      // 3. This forces the "YouTube" checkbox to appear every time
       },
+      // 4. We send them to the dashboard after they click 'Allow'
       redirectTo: "https://xdtip.in/dashboard"
     }
   });
