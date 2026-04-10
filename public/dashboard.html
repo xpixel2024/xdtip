@@ -277,14 +277,23 @@ const client = window.supabase.createClient(
 let userId = "";
 let currentUsername = "";
 
-// 🔥 1. INITIALIZATION FUNCTION
 async function init() {
-  const { data: { user } } = await client.auth.getUser();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) { location.href = "/login"; return; }
+    
+    const { data: profile } = await client
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-  if (!user) {
-    location.href = "/login";
-    return;
-  }
+    if (profile) {
+        // This line is what flips the red dot to green!
+        updateSystemStatus(profile.youtube_connected);
+        
+        // ... rest of your init code ...
+    }
+}
 
   userId = user.id;
 
