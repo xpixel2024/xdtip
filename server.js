@@ -42,6 +42,9 @@ app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.
 app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public/terms.html")));
 app.get("/learn", (req, res) => res.sendFile(path.join(__dirname, "public/learn.html")));
+app.get("/contact", (req, res) => res.sendFile(path.join(__dirname, "contact/terms.html")));
+app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "privacy/terms.html")));
+app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 
 
 // ===================
