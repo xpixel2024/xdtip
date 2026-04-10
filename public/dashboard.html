@@ -308,6 +308,30 @@ async function init() {
           .eq("id", userId);
       }
 
+      .status-dot {
+    height: 10px;
+    width: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.dot-online { background-color: #00ff88; box-shadow: 0 0 10px #00ff88; }
+.dot-offline { background-color: #ff0055; box-shadow: 0 0 10px #ff0055; }
+
+.pulse-animation {
+    animation: status-pulse 2s infinite;
+}
+
+@keyframes status-pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.text-online { color: #00ff88; font-family: 'Share Tech Mono'; }
+.text-offline { color: #ff0055; font-family: 'Share Tech Mono'; }
+
       // 🔥 POPULATE LINKS WITH CORRECT DATA
       setVal("statsLink", `https://xdtip.in/stats-overlay/${obsToken}`);
       setVal("alertLink", `https://xdtip.in/alert/${obsToken}`);
