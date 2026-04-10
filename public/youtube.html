@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>XDTip | YouTube Uplink</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root { --cyan: #00f3ff; --magenta: #ff00ea; --bg: #03040b; }
+        body { background: var(--bg); color: #c8d3f5; font-family: 'Rajdhani', sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .card { background: rgba(5, 8, 20, 0.9); border: 1px solid rgba(0, 243, 255, 0.2); padding: 30px; position: relative; backdrop-filter: blur(10px); }
+        .card::before { content: 'YT_ENGINE_V3'; position: absolute; top: -10px; left: 20px; background: var(--bg); color: var(--cyan); font-family: 'Share Tech Mono'; font-size: 12px; padding: 0 10px; }
+        
+        /* Pulse Status */
+        .status-box { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding: 15px; border-left: 3px solid #ff0055; background: rgba(255, 0, 85, 0.05); }
+        .status-box.online { border-color: #00ff88; background: rgba(0, 255, 136, 0.05); }
+        .dot { height: 12px; width: 12px; border-radius: 50%; background: #ff0055; box-shadow: 0 0 10px #ff0055; }
+        .online .dot { background: #00ff88; box-shadow: 0 0 15px #00ff88; animation: pulse 2s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        
+        .btn { padding: 12px 25px; border: 1px solid var(--cyan); background: transparent; color: var(--cyan); font-family: 'Share Tech Mono'; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .btn:hover { background: var(--cyan); color: #000; box-shadow: 0 0 20px var(--cyan); }
+        h1 { color: #fff; text-shadow: 0 0 10px var(--cyan); margin-bottom: 5px; }
+        p { font-family: 'Share Tech Mono'; color: #7b8ebd; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>YOUTUBE BROADCAST UPLINK</h1>
+        <p>> CHANNEL DATA AND LIVE EVENT MONITORING</p>
+
+        <div class="status-box" id="statusBox">
+            <div class="dot" id="statusDot"></div>
+            <div id="statusText" style="font-family: 'Share Tech Mono'; font-weight: bold; color: #ff0055;">
+                STATUS: [ OFFLINE_DISCONNECTED ]
+            </div>
+        </div>
+
+        <div id="authSection">
+            <p>To catch SuperChats, Subscribers, and Likes, you must authorize the XDTip Engine.</p>
+            <button class="btn" onclick="connectYoutube()">INITIATE HANDSHAKE</button>
+        </div>
+
+        <div id="controlSection" style="display:none; margin-top: 30px;">
+            <p style="color: #00ff88;">UPLINK SECURED. MONITORING ACTIVE BROADCASTS.</p>
+            <div style="background: rgba(0,0,0,0.5); padding: 15px; border: 1px solid #333;">
+                <code style="color: var(--cyan);">// DATA_STREAMS: Chat, SuperChat, Subscriptions</code>
+            </div>
+            <button class="btn" style="margin-top: 20px; border-color: var(--magenta); color: var(--magenta);" onclick="disconnect()">TERMINATE UPLINK</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const client = window.supabase.createClient("https://yohrquotbdmsxfeyxtqr.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM");
+
+    async function checkStatus() {
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) { location.href = "/login"; return; }
+
+        const { data: profile } = await client.from("users").select("youtube_connected").eq("id", user.id).single();
+        
+        if (profile && profile.youtube_connected) {
+            document.getElementById("statusBox").classList.add("online");
+            document.getElementById("statusText").innerText = "STATUS: [ 🟢 MONITORING_LIVE ]";
+            document.getElementById("statusText").style.color = "#00ff88";
+            document.getElementById("authSection").style.display = "none";
+            document.getElementById("controlSection").style.display = "block";
+        }
+    }
+
+    async function connectYoutube() {
+        const { data, error } = await client.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent'
+                },
+                scopes: 'https://www.googleapis.com/auth/youtube.readonly'
+            }
+        });
+    }
+
+    async function disconnect() {
+        const { data: { user } } = await client.auth.getUser();
+        await client.from("users").update({ youtube_connected: false, youtube_refresh_token: null }).eq("id", user.id);
+        location.reload();
+    }
+
+    checkStatus();
+</script>
+</body>
+</html>
