@@ -263,83 +263,45 @@ let currentUsername = "";
 
 // 🔥 1. INITIALIZATION FUNCTION
 async function init() {
-  const { data: { user } } = await client.auth.getUser();
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) { location.href = "/login"; return; }
+    userId = user.id;
 
-  if (!user) {
-    location.href = "/login";
-    return;
-  }
+    try {
+        const { data: profile } = await client.from("users").select("*").eq("id", userId).single();
+        
+        if (profile) {
+            currentUsername = profile.username;
+            updateSystemStatus(profile.youtube_connected);
+            
+            // --- GENERATE OBS TOKEN IF MISSING ---
+            let obsToken = profile.obs_token;
+            if (!obsToken) {
+                obsToken = crypto.randomUUID();
+                await client.from("users").update({ obs_token: obsToken }).eq("id", userId);
+            }
 
-  userId = user.id;
+            // --- FILL THE BROADCAST LINKS ---
+            setVal("alertLink", `https://xdtip.in/alert/${obsToken}`);
+            setVal("statsLink", `https://xdtip.in/stats-overlay/${obsToken}`);
 
-  try {
-    const { data: profile } = await client
-      .from("users")
-      .select("*")
-      .eq("id", userId)
-      .single();
+            if (profile.username) {
+                setText("username", "@" + profile.username);
+                setVal("tipLink", `https://xdtip.in/${profile.username}`);
+            }
 
-    if (profile) {
-      currentUsername = profile.username;
+            if (profile.logo) {
+                document.getElementById("avatar").style.backgroundImage = `url(${profile.logo})`;
+            }
 
-      // Update Profile UI
-      if (profile.username) {
-        setText("username", "@" + profile.username);
-        setVal("tipLink", `https://xdtip.in/${profile.username}`);
-      } else {
-        setText("username", "GUEST_ENTITY");
-      }
-
-      if (profile.logo) {
-        document.getElementById("avatar").style.backgroundImage = `url(${profile.logo})`;
-      }
-
-      setText("balance", "₹" + (profile.balance || 0));
-
-      // --- SMART OBS TOKEN LOGIC ---
-      let obsToken = profile.obs_token;
-      
-      // If user doesn't have an obs_token, create one instantly!
-      if (!obsToken) {
-        obsToken = crypto.randomUUID(); 
-        await client
-          .from("users")
-          .update({ obs_token: obsToken })
-          .eq("id", userId);
-      }
-
-      // Default theme setting
-      if (!profile.overlay_theme) {
-        await client
-          .from("users")
-          .update({ overlay_theme: "basic" })
-          .eq("id", userId);
-      }
-
-      // 🔥 POPULATE LINKS WITH CORRECT DATA
-      setVal("statsLink", `https://xdtip.in/stats-overlay/${obsToken}`);
-      setVal("alertLink", `https://xdtip.in/alert/${obsToken}`);
-
-      // Handle KYC Display
-      if (profile.kyc === true || profile.kyc === "true") {
-        document.getElementById("kycSection").style.display = "none";
-        document.getElementById("upiSection").style.display = "block";
-        document.getElementById("upi").innerText = profile.upi || "NO UPI LINKED";
-      } else if (profile.kyc === "pending") {
-        setText("kycStatus", "VERIFICATION IN PROGRESS...");
-      } else {
-        setText("kycStatus", "AWAITING CLEARANCE");
-      }
-
-      // FETCH THE TIPS & PAYOUTS
-      if (profile.username) {
-        fetchTips(profile.username);
-      }
-      fetchPayouts(userId);
+            // Update balance if you have the element
+            if(document.getElementById("balance")) {
+                setText("balance", "₹" + (profile.balance || 0));
+            }
+        }
+    } catch (e) {
+        console.error("DASHBOARD_BOOT_ERROR:", e);
     }
-  } catch (e) {
-    console.error("DASHBOARD_BOOT_ERROR:", e);
-  }
 }
 
 // 🔥 2. FETCH TIPS LOGIC
