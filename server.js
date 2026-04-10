@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { google } = require('googleapis');
 
 const app = express();
 
@@ -415,6 +416,87 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
         res.status(500).json({ error: "Failed to approve KYC" });
     }
 });
+
+// --- YOUTUBE POLLING ENGINE ---
+
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+);
+
+async function pollYouTubeLive(user) {
+    // 1. Setup Auth for this specific user
+    oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
+    try {
+        let chatId = user.active_chat_id;
+
+        // 2. If we don't have a Chat ID, find the current Live Stream
+        if (!chatId) {
+            const res = await youtube.liveBroadcasts.list({
+                mine: true,
+                broadcastStatus: 'active',
+                part: 'snippet'
+            });
+
+            chatId = res.data.items[0]?.snippet.liveChatId;
+
+            if (chatId) {
+                // Save Chat ID so we don't have to look it up again for a while
+                await supabase.from('users').update({ active_chat_id: chatId }).eq('id', user.id);
+                console.log(`Uplink established for ${user.username}: ChatID ${chatId}`);
+            } else {
+                return; // User is not live
+            }
+        }
+
+        // 3. Fetch recent Chat Messages / SuperChats
+        const chatRes = await youtube.liveChatMessages.list({
+            liveChatId: chatId,
+            part: 'snippet,authorDetails'
+        });
+
+        const messages = chatRes.data.items;
+        
+        // Filter for SuperChats and trigger alerts
+        messages.forEach(msg => {
+            if (msg.snippet.type === 'superChatEvent') {
+                const details = msg.snippet.superChatDetails;
+                // Trigger your Socket.io alert here
+                io.to(user.username).emit('new-alert', {
+                    type: 'superchat',
+                    sender: msg.authorDetails.displayName,
+                    amount: details.amountDisplayString,
+                    message: msg.snippet.displayMessage
+                });
+            }
+        });
+
+    } catch (err) {
+        // If token is expired or revoked, mark user as disconnected
+        if (err.message.includes('invalid_grant')) {
+            await supabase.from('users').update({ youtube_connected: false }).eq('id', user.id);
+        }
+        console.error(`YT_ENGINE_ERR [${user.username}]:`, err.message);
+    }
+}
+
+// --- ENGINE LOOPS ---
+
+// High-Speed Loop: Checks Chat/SuperChats every 15 seconds
+setInterval(async () => {
+    const { data: users } = await supabase
+        .from('users')
+        .select('*')
+        .eq('youtube_connected', true)
+        .not('youtube_refresh_token', 'is', null);
+
+    if (users) {
+        users.forEach(user => pollYouTubeLive(user));
+    }
+}, 15000);
+
 // ===================
 // START SERVER
 // ===================
