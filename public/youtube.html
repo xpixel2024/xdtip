@@ -5,84 +5,156 @@
     <title>XDTip | YT Command Center</title>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        :root { --cyan: #00f3ff; --magenta: #ff00ea; --bg: #03040b; --panel: rgba(5, 8, 20, 0.95); }
-        body { background: var(--bg); color: #c8d3f5; font-family: 'Rajdhani', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        :root { 
+            --cyan: #00f3ff; 
+            --magenta: #ff00ea; 
+            --bg: #03040b; 
+            --panel: rgba(5, 8, 20, 0.95); 
+        }
         
-        /* Sidebar Navigation */
-        .sidebar { width: 250px; background: #000; border-right: 1px solid rgba(0, 243, 255, 0.2); display: flex; flex-direction: column; padding: 20px; }
-        .sidebar h2 { font-size: 18px; color: var(--cyan); letter-spacing: 2px; margin-bottom: 30px; }
-        .nav-item { padding: 15px; color: #7b8ebd; cursor: pointer; font-family: 'Share Tech Mono'; transition: 0.3s; border-left: 3px solid transparent; margin-bottom: 5px; }
-        .nav-item:hover, .nav-item.active { background: rgba(0, 243, 255, 0.05); color: #fff; border-left-color: var(--cyan); }
+        body { 
+            background: var(--bg); 
+            color: #c8d3f5; 
+            font-family: 'Rajdhani', sans-serif; 
+            margin: 0; 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
 
-        /* Main Content Area */
-        .main { flex: 1; padding: 40px; overflow-y: auto; position: relative; }
-        .sub-page { display: none; animation: fadeIn 0.5s ease forwards; }
-        .sub-page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Side Navigation */
+        .sidebar { 
+            width: 260px; 
+            background: #000; 
+            border-right: 1px solid rgba(0, 243, 255, 0.1); 
+            display: flex; 
+            flex-direction: column; 
+            padding: 20px; 
+            z-index: 10;
+        }
 
-        /* HUD Components */
-        .card { background: var(--panel); border: 1px solid rgba(255, 255, 255, 0.05); padding: 25px; margin-bottom: 20px; position: relative; }
-        .status-box { display: flex; align-items: center; gap: 15px; padding: 15px; border: 1px solid #333; margin-top: 20px; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; background: #ff0055; box-shadow: 0 0 10px #ff0055; }
-        .online .dot { background: #00ff88; box-shadow: 0 0 10px #00ff88; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .sidebar h2 { 
+            font-size: 18px; 
+            color: var(--cyan); 
+            letter-spacing: 2px; 
+            margin-bottom: 30px; 
+            padding-left: 15px;
+        }
 
-        /* Tables for Feed/Revenue */
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-family: 'Share Tech Mono'; }
-        th { text-align: left; color: var(--cyan); border-bottom: 1px solid #333; padding: 10px; }
-        td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); }
+        .nav-item { 
+            padding: 15px; 
+            color: #7b8ebd; 
+            cursor: pointer; 
+            font-family: 'Share Tech Mono'; 
+            transition: 0.3s; 
+            border-left: 3px solid transparent; 
+            margin-bottom: 5px; 
+            text-transform: uppercase;
+        }
+
+        .nav-item:hover, .nav-item.active { 
+            background: rgba(0, 243, 255, 0.05); 
+            color: #fff; 
+            border-left-color: var(--cyan); 
+        }
+
+        /* Main Viewport */
+        .main { flex: 1; padding: 40px; overflow-y: auto; background: radial-gradient(circle at top right, rgba(0, 243, 255, 0.03), transparent); }
+        
+        .sub-page { display: none; }
+        .sub-page.active { display: block; animation: scanIn 0.4s ease-out; }
+
+        @keyframes scanIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* HUD Elements */
+        .card { 
+            background: var(--panel); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            padding: 25px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        h1 { font-size: 32px; letter-spacing: 3px; margin-bottom: 30px; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px; }
+
+        .status-box { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+            padding: 20px; 
+            background: rgba(0,0,0,0.3); 
+            border: 1px solid #222; 
+        }
+
+        .dot { height: 12px; width: 12px; border-radius: 50%; background: #ff0055; box-shadow: 0 0 10px #ff0055; }
+        .online .dot { background: #00ff88; box-shadow: 0 0 15px #00ff88; animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-family: 'Share Tech Mono'; }
+        th { text-align: left; color: var(--cyan); border-bottom: 1px solid #333; padding: 12px; font-size: 13px; }
+        td { padding: 15px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); font-size: 14px; }
+
+        .btn-back { margin-top: auto; padding: 12px; background: transparent; border: 1px solid #333; color: #555; cursor: pointer; font-family: 'Share Tech Mono'; transition: 0.3s; }
+        .btn-back:hover { color: #fff; border-color: #666; }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h2>YT_UPLINK</h2>
+    <h2>YT_CORE_v3</h2>
     <div class="nav-item active" onclick="showTab('dashboard')">> DASHBOARD</div>
     <div class="nav-item" onclick="showTab('activity')">> ACTIVITY_FEED</div>
     <div class="nav-item" onclick="showTab('revenue')">> REVENUE_LOGS</div>
-    <div style="margin-top: auto; padding: 10px;">
-        <button onclick="window.location.href='/dashboard'" style="background:transparent; color: #555; border: 1px solid #333; cursor:pointer; width:100%; padding:10px;">RETURN_TO_BASE</button>
-    </div>
+    
+    <button class="btn-back" onclick="window.location.href='/dashboard'">RETURN_TO_BASE</button>
 </div>
 
 <div class="main">
     <div id="dashboard" class="sub-page active">
-        <h1>COMMAND_CENTER</h1>
+        <h1>UPLINK_STATUS</h1>
         <div class="card">
-            <h3>ENGINE STATUS</h3>
+            <h3>ENGINE MONITOR</h3>
             <div id="statusBox" class="status-box">
                 <div class="dot"></div>
-                <div id="statusText" style="font-family:'Share Tech Mono'; color:#ff0055;">OFFLINE_NO_UPLINK</div>
+                <div id="statusText" style="font-family:'Share Tech Mono'; color:#ff0055;">SYSTEM_OFFLINE</div>
             </div>
-            <p>> Auto-polling every 15 seconds. Ensure you granted permissions during login.</p>
+            <p style="color: #55678a; font-family: 'Share Tech Mono'; font-size: 12px; margin-top: 15px;">
+                > Waiting for active YouTube Live Broadcast ID...<br>
+                > Auto-syncing refresh tokens from session gateway.
+            </p>
         </div>
     </div>
 
     <div id="activity" class="sub-page">
-        <h1>LIVE_ACTIVITY_FEED</h1>
+        <h1>LIVE_FEED</h1>
         <div class="card">
             <table>
                 <thead>
-                    <tr><th>EVENT</th><th>SENDER</th><th>DATA</th><th>TIME</th></tr>
+                    <tr><th>EVENT_TYPE</th><th>SENDER</th><th>MESSAGE/DATA</th><th>TIMESTAMP</th></tr>
                 </thead>
                 <tbody id="feedBody">
-                    <tr><td colspan="4" style="text-align:center; opacity:0.5;">WAITING FOR LIVE DATA...</td></tr>
+                    <tr><td colspan="4" style="text-align:center; opacity:0.3; padding: 40px;">LISTENING FOR STREAM EVENTS...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <div id="revenue" class="sub-page">
-        <h1>YOUTUBE_REVENUE_LOGS</h1>
+        <h1>REVENUE_VAULT</h1>
         <div class="card">
-            <div id="totalRevenue" style="font-size: 32px; color: var(--cyan);">₹0.00</div>
-            <p>Total processed SuperChats (Life-time)</p>
+            <div id="totalRev" style="font-size: 42px; color: var(--cyan); font-family: 'Share Tech Mono';">₹0.00</div>
+            <p style="opacity:0.5;">SuperChat Revenue Accumulated</p>
             <table>
                 <thead>
-                    <tr><th>DATE</th><th>SOURCE</th><th>AMOUNT</th></tr>
+                    <tr><th>DATE</th><th>TX_ID</th><th>NET_AMOUNT</th></tr>
                 </thead>
                 <tbody id="revenueBody">
-                    <tr><td colspan="3" style="text-align:center; opacity:0.5;">NO REVENUE RECORDED</td></tr>
+                    <tr><td colspan="3" style="text-align:center; opacity:0.3; padding: 40px;">NO DATA IN VAULT</td></tr>
                 </tbody>
             </table>
         </div>
@@ -91,9 +163,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const client = window.supabase.createClient("https://yohrquotbdmsxfeyxtqr.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM");
+    const client = window.supabase.createClient(
+        "https://yohrquotbdmsxfeyxtqr.supabase.co", 
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+    );
 
-    // --- TAB NAVIGATION ---
+    // --- Tab Controller ---
     function showTab(tabId) {
         document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -101,57 +176,61 @@
         event.currentTarget.classList.add('active');
     }
 
-    // --- CORE LOGIC ---
+    // --- Fast Initialization ---
     async function init() {
         const { data: { session } } = await client.auth.getSession();
         if (!session) { window.location.href = "/login"; return; }
 
-        // 1. Capture Token from Google if it exists in the current session
+        const uid = session.user.id;
+
+        // Auto-Update Token (Only if fresh from login)
         if (session.provider_refresh_token) {
             await client.from('users').update({ 
                 youtube_refresh_token: session.provider_refresh_token,
                 youtube_connected: true 
-            }).eq('id', session.user.id);
+            }).eq('id', uid);
         }
 
-        // 2. Fetch Profile to update HUD
-        const { data: profile } = await client.from("users").select("*").eq("id", session.user.id).single();
+        // Load Status
+        const { data: profile } = await client.from("users").select("*").eq("id", uid).single();
         if (profile && profile.youtube_connected) {
-            const box = document.getElementById("statusBox");
-            const text = document.getElementById("statusText");
-            box.classList.add("online");
-            text.innerText = "ONLINE: MONITORING_LIVE";
-            text.style.color = "#00ff88";
+            document.getElementById("statusBox").classList.add("online");
+            document.getElementById("statusText").innerText = "ONLINE: MONITORING_STREAM";
+            document.getElementById("statusText").style.color = "#00ff88";
+            
+            loadFeed(profile.username);
         }
-        
-        // 3. Load Feed and Revenue (Example queries)
-        loadActivity(profile.username);
     }
 
-    async function loadActivity(username) {
-        // Query your "tips" or "alerts" table filtered by SuperChats
-        const { data: events } = await client.from("tips")
+    async function loadFeed(username) {
+        const { data: tips } = await client.from("tips")
             .select("*")
             .eq("username", username)
-            .order("created_at", { ascending: false });
-            
-        if (events && events.length > 0) {
-            const feedBody = document.getElementById("feedBody");
-            feedBody.innerHTML = "";
-            events.forEach(e => {
-                feedBody.insertAdjacentHTML('beforeend', `
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+        if (tips && tips.length > 0) {
+            const body = document.getElementById("feedBody");
+            body.innerHTML = "";
+            let total = 0;
+
+            tips.forEach(t => {
+                total += parseFloat(t.amount || 0);
+                body.insertAdjacentHTML('beforeend', `
                     <tr>
-                        <td>SUPERCHAT</td>
-                        <td>${e.sender_name}</td>
-                        <td style="color:var(--magenta)">₹${e.amount}</td>
-                        <td>${new Date(e.created_at).toLocaleTimeString()}</td>
+                        <td style="color:var(--magenta)">SUPERCHAT</td>
+                        <td>${t.sender_name}</td>
+                        <td>${t.message || '---'}</td>
+                        <td>${new Date(t.created_at).toLocaleTimeString()}</td>
                     </tr>
                 `);
             });
+            document.getElementById("totalRev").innerText = "₹" + total.toFixed(2);
         }
     }
 
-    init();
+    // Run after window load to prevent homepage slowdown
+    window.addEventListener('load', init);
 </script>
 </body>
 </html>
