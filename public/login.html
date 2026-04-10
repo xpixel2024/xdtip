@@ -187,12 +187,18 @@ const client = window.supabase.createClient(
 );
 
 async function login() {
-  console.log("Uplink initiated...");
+  console.log("Uplink initiated with YouTube permissions...");
 
   const { error } = await client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: "http://xdtip.in/dashboard"
+      // 1. Ask for YouTube Read-only access
+      scopes: 'https://www.googleapis.com/auth/youtube.readonly',
+      queryParams: {
+        access_type: 'offline', // Critical for background alerts
+        prompt: 'consent',     // Forces Google to give a Refresh Token
+      },
+      redirectTo: "https://xdtip.in/dashboard"
     }
   });
 
