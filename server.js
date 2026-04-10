@@ -1,7 +1,6 @@
 const express = require("express");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
-const { google } = require('googleapis');
 
 const app = express();
 
@@ -408,34 +407,6 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
         res.status(500).json({ error: "Failed to approve KYC" });
     }
 });
-
-async function pollYouTubeLive(user) {
-    const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID, 
-        process.env.GOOGLE_CLIENT_SECRET
-    );
-    oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
-    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-
-    try {
-        let chatId = user.active_chat_id;
-        if (!chatId) {
-            const res = await youtube.liveBroadcasts.list({ mine: true, broadcastStatus: 'active', part: 'snippet' });
-            chatId = res.data.items[0]?.snippet.liveChatId;
-            if (chatId) await supabase.from('users').update({ active_chat_id: chatId }).eq('id', user.id);
-            else return; 
-        }
-
-        const chatRes = await youtube.liveChatMessages.list({ liveChatId: chatId, part: 'snippet,authorDetails' });
-        // Logic to emit SuperChat alerts via Socket.io goes here...
-    } catch (err) { console.error("YT_POLL_ERR:", err.message); }
-}
-
-// Start the 10-second loop
-setInterval(async () => {
-    const { data: users } = await supabase.from('users').select('*').eq('youtube_connected', true);
-    if (users) users.forEach(user => pollYouTubeLive(user));
-}, 10000);
 // ===================
 // START SERVER
 // ===================
