@@ -33,6 +33,22 @@ app.get(/\.html$/, (req, res) => {
   res.redirect(301, clean);
 });
 
+// --- STATIC PAGES (Put it here!) ---
+app.get('/youtube', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'youtube.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+// --- DYNAMIC USER PAGES (Always keep this below the others) ---
+app.get('/:username', async (req, res) => {
+    // This route captures EVERYTHING after the /
+    // If /youtube is above this, it works. 
+    // If /youtube is below this, it fails.
+});
+
 // ===================
 // STATIC ROUTES
 // ===================
