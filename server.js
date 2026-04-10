@@ -617,6 +617,19 @@ setInterval(async () => {
     }
 }, 120000);
 
+async function generateNewObsToken() {
+    const newToken = crypto.randomUUID();
+    const { error } = await client
+        .from("users")
+        .update({ obs_token: newToken })
+        .eq("id", userId);
+    
+    if (!error) {
+        setVal("alertLink", `https://xdtip.in/alert/${newToken}`);
+        setVal("statsLink", `https://xdtip.in/stats-overlay/${newToken}`);
+    }
+}
+
 
 // ===================
 // START SERVER
