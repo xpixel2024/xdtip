@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { google } = require('googleapis');
 
 const app = express();
 
@@ -472,9 +473,18 @@ setInterval(async () => {
 }, 120000);
 
 async function pollYouTubeLive(user) {
-    const oauth2Client = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+    // 1. Ensure 'google' is imported at the very top of server.js: 
+    // const { google } = require('googleapis');
+
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID, 
+        process.env.GOOGLE_CLIENT_SECRET
+    );
+
     oauth2Client.setCredentials({ refresh_token: user.youtube_refresh_token });
-    const youtube = google.google.youtube({ version: 'v3', auth: oauth2Client });
+
+    // FIX: Changed google.google.youtube to google.youtube
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     try {
         let chatId = user.active_chat_id;
@@ -486,15 +496,16 @@ async function pollYouTubeLive(user) {
                 broadcastStatus: 'active',
                 part: 'snippet'
             });
+            
             chatId = broadcastRes.data.items[0]?.snippet.liveChatId;
             
             if (chatId) {
                 await supabase.from('users').update({ active_chat_id: chatId }).eq('id', user.id);
             } else {
-                return; // User is not live, stop here to save quota
+                return; // User is not live
             }
         }
-
+        // ... rest of your logic
         // 2. Fetch new messages
         const chatRes = await youtube.liveChatMessages.list({
             liveChatId: chatId,
