@@ -7,7 +7,6 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-
     <style>
         :root {
           --neon-cyan: #00f3ff;
@@ -125,42 +124,69 @@
     </div>
 
 <script>
-const cashfree = Cashfree({ mode: "sandbox" });
+    // Initialize Cashfree - "sandbox" for testing, "production" for live
+    const cashfree = Cashfree({
+        mode: "sandbox" 
+    });
 
-async function pay(){
+    const form = document.getElementById('payment-form');
+    const payBtn = document.getElementById('pay-button');
 
-  const amount = document.getElementById("amount").value;
+    const creatorName = "<%= user.name %>";
+    const creatorUsername = "<%= user.username %>";
 
-  const res = await fetch("/api/create-order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount })
-  });
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-  const data = await res.json();
+        const name = document.getElementById('sender-name').value;
+        const message = document.getElementById('sender-message').value;
+        const amount = document.getElementById('tip-amount').value;
 
-  cashfree.checkout({
-    paymentSessionId: data.payment_session_id,
-    redirectTarget: "_modal",
-    onSuccess: function () {
-      verify(data.order_id);
-    }
-  });
-}
+        if (!amount || amount < 10) {
+            alert("Minimum amount is ₹10");
+            return;
+        }
 
-async function verify(orderId){
+        payBtn.innerText = "INITIALIZING...";
+        payBtn.disabled = true;
 
-  await fetch("/api/verify-payment", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      orderId,
-      creatorId: "username"
-    })
-  });
+        try {
+            /* STEP 1: Create Order on your server.
+               This replaces the Razorpay 'options' object.
+            */
+            const response = await fetch('/api/create-cashfree-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: amount,
+                    name: name,
+                    message: message,
+                    username: creatorUsername
+                })
+            });
 
-  alert("Payment Success!");
-}
+            const orderData = await response.json();
+
+            if (!orderData.payment_session_id) {
+                throw new Error(orderData.error || "Failed to create session");
+            }
+
+            /* STEP 2: Open Cashfree Checkout.
+               This replaces rzp.open().
+            */
+            let checkoutOptions = {
+                paymentSessionId: orderData.payment_session_id,
+                redirectTarget: "_self", 
+            };
+
+            cashfree.checkout(checkoutOptions);
+
+        } catch (err) {
+            alert("PROTOCOL ERROR: " + err.message);
+            payBtn.disabled = false;
+            payBtn.innerText = "[ TRANSMIT CREDITS ]";
+        }
+    });
 </script>
 </body>
 </html>
