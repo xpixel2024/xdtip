@@ -438,10 +438,15 @@ app.post('/api/create-cashfree-order', async (req, res) => {
         });
 
         res.json({ payment_session_id: response.data.payment_session_id });
-    } catch (error) {
-        console.error("Cashfree Order Error:", error.response?.data || error.message);
-        res.status(500).json({ error: "Gateway Error" });
+  } catch (error) {
+    if (error.response) {
+        // This will print the specific error (e.g., "Amount invalid" or "Unauthorized")
+        console.error("CASHFREE LIVE ERROR:", error.response.data);
+    } else {
+        console.error("SERVER ERROR:", error.message);
     }
+    res.status(500).json({ error: "Session failed" });
+}
 });
 
 // ==========================
