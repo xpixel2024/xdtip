@@ -6,73 +6,33 @@
     <title>Uplink: Support <%= user.name %></title>
     
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
 
     <style>
-        :root {
-          --neon-cyan: #00f3ff;
-          --neon-magenta: #ff00ea;
-          --bg-dark: #03040b;
-          --panel-bg: rgba(5, 8, 20, 0.85);
-          --grid-color: rgba(0, 243, 255, 0.05);
-        }
-
-        body {
-          margin: 0; font-family: 'Rajdhani', sans-serif;
-          background-color: var(--bg-dark); color: #c8d3f5;
-          overflow-x: hidden;
-        }
-
-        .bgfx {
-          position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-          background-image: 
-            linear-gradient(var(--grid-color) 1px, transparent 1px),
-            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-          background-size: 40px 40px;
-        }
-
-        .bgfx::after {
-          content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                      linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-          background-size: 100% 4px, 3px 100%; pointer-events: none;
-        }
-
+        /* Keeping your original CSS styles exactly the same */
+        :root { --neon-cyan: #00f3ff; --neon-magenta: #ff00ea; --bg-dark: #03040b; --panel-bg: rgba(5, 8, 20, 0.85); --grid-color: rgba(0, 243, 255, 0.05); }
+        body { margin: 0; font-family: 'Rajdhani', sans-serif; background-color: var(--bg-dark); color: #c8d3f5; overflow-x: hidden; }
+        .bgfx { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-image: linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px); background-size: 40px 40px; }
+        .bgfx::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; pointer-events: none; }
         .container { display: flex; min-height: 100vh; justify-content: center; align-items: center; padding: 20px; }
         .card { background: var(--panel-bg); border: 1px solid rgba(0, 243, 255, 0.2); box-shadow: 0 0 30px rgba(0, 243, 255, 0.1); padding: 40px 30px; width: 100%; max-width: 420px; backdrop-filter: blur(10px); position: relative; }
         .card::before, .card::after { content: ''; position: absolute; width: 20px; height: 20px; border: 2px solid var(--neon-cyan); }
         .card::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
         .card::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
-
         .sys-label { position: absolute; top: -12px; left: 20px; background: var(--bg-dark); padding: 0 10px; color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1px; }
         .profile-header { text-align: center; margin-bottom: 30px; }
-
-        .avatar-wrapper {
-          position: relative; width: 110px; height: 110px; margin: 0 auto 15px;
-          display: flex; justify-content: center; align-items: center; background: var(--neon-cyan);
-          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-          box-shadow: 0 0 20px var(--neon-cyan);
-        }
-
-        .avatar {
-          width: 104px; height: 104px; background: #111; background-size: cover; background-position: center;
-          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-        }
-
+        .avatar-wrapper { position: relative; width: 110px; height: 110px; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; background: var(--neon-cyan); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); box-shadow: 0 0 20px var(--neon-cyan); }
+        .avatar { width: 104px; height: 104px; background: #111; background-size: cover; background-position: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
         .creator-name { font-size: 28px; font-weight: 700; color: #fff; margin: 0; text-shadow: 0 0 10px var(--neon-cyan); text-transform: uppercase; }
         .creator-handle { font-family: 'Share Tech Mono', monospace; color: #8fa1d0; font-size: 14px; margin-top: 5px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; color: var(--neon-magenta); font-family: 'Share Tech Mono', monospace; font-size: 12px; margin-bottom: 5px; }
-
         input, textarea { width: 100%; box-sizing: border-box; padding: 12px 15px; background: rgba(0, 0, 0, 0.6); border: 1px solid #333; border-left: 3px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; font-size: 16px; outline: none; }
         .currency-wrapper { position: relative; }
         .currency-wrapper span { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--neon-cyan); font-family: 'Share Tech Mono', monospace; font-weight: bold; }
         .currency-wrapper input { padding-left: 35px; }
-
-        .btn {
-          width: 100%; padding: 15px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 18px; cursor: pointer; transition: 0.3s;
-          clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-        }
+        .btn { width: 100%; padding: 15px; background: rgba(0, 243, 255, 0.05); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 18px; cursor: pointer; transition: 0.3s; clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px); }
         .btn:hover:not(:disabled) { background: var(--neon-cyan); color: #000; box-shadow: 0 0 25px var(--neon-cyan); }
     </style>
 </head>
@@ -83,7 +43,6 @@
     <div class="container">
         <div class="card">
             <div class="sys-label">SECURE_PAYMENT_NODE</div>
-
             <div class="profile-header">
                 <div class="avatar-wrapper">
                     <% if (user.logo && user.logo.trim() !== '') { %>
@@ -103,12 +62,10 @@
                     <label>> SENDER IDENTITY (NAME)</label>
                     <input type="text" id="sender-name" required placeholder="Enter your name...">
                 </div>
-
                 <div class="form-group">
                     <label>> TRANSMIT PAYLOAD (MESSAGE)</label>
                     <textarea id="sender-message" rows="3" placeholder="Enter transmission data..."></textarea>
                 </div>
-
                 <div class="form-group">
                     <label>> ALLOCATE CREDITS (INR)</label>
                     <div class="currency-wrapper">
@@ -116,7 +73,6 @@
                         <input type="number" id="tip-amount" required min="10" placeholder="100">
                     </div>
                 </div>
-
                 <button type="submit" id="pay-button" class="btn">
                     [ TRANSMIT CREDITS ]
                 </button>
@@ -125,11 +81,13 @@
     </div>
 
     <script>
+    // Initialize Cashfree
+    const cashfree = Cashfree({
+        mode: "sandbox", // Use "production" for real payments
+    });
+
     const form = document.getElementById('payment-form');
     const payBtn = document.getElementById('pay-button');
-
-    // From EJS
-    const creatorName = "<%= user.name %>";
     const creatorUsername = "<%= user.username %>";
 
     form.addEventListener('submit', async (e) => {
@@ -144,58 +102,48 @@
             return;
         }
 
-        payBtn.innerText = "INITIALIZING...";
+        payBtn.innerText = "INITIALIZING SESSION...";
         payBtn.disabled = true;
 
-        const options = {
-            "key": "rzp_test_Say77hRQvGF2Kd", 
-            "amount": parseInt(amount) * 100, 
-            "currency": "INR",
-            "name": "Tip for " + creatorName,
-            "handler": async function (response) {
-                payBtn.innerText = "UPLOADING DATA...";
-                try {
-                    const saveResponse = await fetch('/api/tip', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: creatorUsername, // Matches server-side column
-                            name: name,
-                            message: message,
-                            amount: amount,
-                            payment_id: response.razorpay_payment_id
-                        })
-                    });
-
-                    const result = await saveResponse.json();
-                    if (result.success) {
-                        alert("CREDIT TRANSMITTED SUCCESSFULLY!");
-                        window.location.reload();
-                    } else {
-                        alert("TRANSMISSION ERROR: " + (result.error || "Unknown"));
-                        payBtn.disabled = false;
-                        payBtn.innerText = "[ TRANSMIT CREDITS ]";
-                    }
-                } catch (err) {
-                    alert("PROTOCOL ERROR: Connection failed.");
-                    payBtn.disabled = false;
-                    payBtn.innerText = "[ TRANSMIT CREDITS ]";
-                }
-            },
-            "modal": {
-                "ondismiss": function() {
-                    payBtn.innerText = "[ TRANSMIT CREDITS ]";
-                    payBtn.disabled = false;
-                }
-            },
-            "theme": { "color": "#00f3ff" }
-        };
-
         try {
-            const rzp = new Razorpay(options);
-            rzp.open();
+            // STEP 1: Create Order on your backend to get payment_session_id
+            const response = await fetch('/api/create-cashfree-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: amount,
+                    username: creatorUsername,
+                    customerName: name,
+                    customerMessage: message
+                })
+            });
+
+            const sessionData = await response.json();
+
+            if (!sessionData.payment_session_id) {
+                throw new Error("Failed to create payment session");
+            }
+
+            // STEP 2: Trigger the Cashfree Checkout
+            let checkoutOptions = {
+                paymentSessionId: sessionData.payment_session_id,
+                redirectTarget: "_self", 
+            };
+
+            cashfree.checkout(checkoutOptions).then((result) => {
+                if (result.error) {
+                    alert("TRANSMISSION ERROR: " + result.error.message);
+                    payBtn.disabled = false;
+                    payBtn.innerText = "[ TRANSMIT CREDITS ]";
+                }
+                if (result.redirect) {
+                    // Payment is being processed
+                    console.log("Redirecting to payment...");
+                }
+            });
+
         } catch (err) {
-            alert("Razorpay failed to load.");
+            alert("PROTOCOL ERROR: " + err.message);
             payBtn.disabled = false;
             payBtn.innerText = "[ TRANSMIT CREDITS ]";
         }
