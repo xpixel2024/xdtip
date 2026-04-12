@@ -1,4 +1,5 @@
 const express = require("express");
+const axios = require("axios");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
 
@@ -407,6 +408,127 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
         res.status(500).json({ error: "Failed to approve KYC" });
     }
 });
+
+app.post("/api/create-order", async (req, res) => {
+
+  const { amount, creatorId } = req.body;
+
+  const orderId = "order_" + Date.now();
+
+  try {
+
+    const response = await axios.post(
+      "https://api.cashfree.com/pg/orders",
+      {
+        order_id: orderId,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: {
+          customer_id: "user_" + Date.now(),
+          customer_phone: "9999999999"
+        }
+      },
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2022-09-01",
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json({
+      payment_session_id: response.data.payment_session_id,
+      order_id: orderId
+    });
+
+  } catch (err) {
+    console.error(err.response?.data);
+    res.json({ error: "Order creation failed" });
+  }
+
+});
+
+app.post("/api/verify-payment", async (req, res) => {
+
+  const { orderId, creatorId, name, message } = req.body;
+
+  try {
+
+    const response = await axios.get(
+      `https://api.cashfree.com/pg/orders/${orderId}`,
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2022-09-01"
+        }
+      }
+    );
+
+    const order = response.data;
+
+    if(order.order_status === "PAID"){
+
+      const amount = order.order_amount;
+
+      // 🔥 CALCULATE
+      const fee = amount * 0.06;
+      const net = amount - fee;
+
+      // SAVE TIP
+      await supabase.from("tips").insert({
+        creator_id: creatorId,
+        sender: name,
+        message,
+        amount,
+        fee,
+        net_amount: net,
+        payment_id: orderId
+      });
+
+      // UPDATE BALANCE
+      const { data: user } = await supabase
+        .from("users")
+        .select("balance")
+        .eq("id", creatorId)
+        .single();
+
+      const newBalance = (user.balance || 0) + net;
+
+      await supabase
+        .from("users")
+        .update({ balance: newBalance })
+        .eq("id", creatorId);
+
+      return res.json({ success:true });
+
+    } else {
+      return res.json({ success:false });
+    }
+
+  } catch (err) {
+    console.error(err.response?.data);
+    res.json({ success:false });
+  }
+
+});
+
+async function verify(orderId){
+
+  await fetch("/api/verify-payment", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      orderId,
+      creatorId,
+      name,
+      message
+    })
+  });
+}
+
 // ===================
 // START SERVER
 // ===================
