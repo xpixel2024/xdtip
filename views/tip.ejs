@@ -124,15 +124,10 @@
     </div>
 
 <script>
-    // Initialize Cashfree - "sandbox" for testing, "production" for live
-    const cashfree = Cashfree({
-        mode: "sandbox" 
-    });
+    const cashfree = Cashfree({ mode: "sandbox" }); // Change to "production" for live
 
     const form = document.getElementById('payment-form');
     const payBtn = document.getElementById('pay-button');
-
-    const creatorName = "<%= user.name %>";
     const creatorUsername = "<%= user.username %>";
 
     form.addEventListener('submit', async (e) => {
@@ -142,18 +137,11 @@
         const message = document.getElementById('sender-message').value;
         const amount = document.getElementById('tip-amount').value;
 
-        if (!amount || amount < 10) {
-            alert("Minimum amount is ₹10");
-            return;
-        }
-
         payBtn.innerText = "INITIALIZING...";
         payBtn.disabled = true;
 
         try {
-            /* STEP 1: Create Order on your server.
-               This replaces the Razorpay 'options' object.
-            */
+            // STEP 1: Create Order on Server
             const response = await fetch('/api/create-cashfree-order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -168,21 +156,17 @@
             const orderData = await response.json();
 
             if (!orderData.payment_session_id) {
-                throw new Error(orderData.error || "Failed to create session");
+                throw new Error("Session failed");
             }
 
-            /* STEP 2: Open Cashfree Checkout.
-               This replaces rzp.open().
-            */
-            let checkoutOptions = {
+            // STEP 2: Open Cashfree Modal
+            await cashfree.checkout({
                 paymentSessionId: orderData.payment_session_id,
                 redirectTarget: "_self", 
-            };
-
-            cashfree.checkout(checkoutOptions);
+            });
 
         } catch (err) {
-            alert("PROTOCOL ERROR: " + err.message);
+            alert("ERROR: " + err.message);
             payBtn.disabled = false;
             payBtn.innerText = "[ TRANSMIT CREDITS ]";
         }
