@@ -416,8 +416,8 @@ app.post('/api/create-cashfree-order', async (req, res) => {
     const { amount, name, message, username } = req.body;
 
     try {
-        const response = await axios.post('https://sandbox.cashfree.com/pg/orders', {
-            order_amount: parseFloat(amount),
+        const response = await axios.post('https://api.cashfree.com/pg/orders', {
+            order_amount: parseFloat(amount).toFixed(2),
             order_currency: "INR",
             order_id: `order_${Date.now()}`,
             customer_details: {
