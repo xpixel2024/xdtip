@@ -185,30 +185,22 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
     </div>
   </div>
 
-<div class="card">
-        <div class="sys-label">[ GOAL_MANAGEMENT_INTERFACE ]</div>
-        
-        <div class="form-group">
-            <label>> SET TARGET AMOUNT (INR)</label>
-            <input type="number" id="g-amt" placeholder="e.g. 5000" value="1000">
-        </div>
+<div style="background: #111; padding: 20px; border: 1px solid #00f3ff; margin: 20px;">
+    <h3 style="color: #00f3ff; margin-top: 0;">Goal Configuration</h3>
+    
+    <label style="color: #8fa1d0; font-size: 12px;">TARGET AMOUNT (INR)</label><br>
+    <input type="number" id="goal-amt" style="width: 100%; padding: 10px; background: #000; color: white; border: 1px solid #333; margin-bottom: 10px;">
+    
+    <label style="color: #8fa1d0; font-size: 12px;">GOAL REASON</label><br>
+    <input type="text" id="goal-rsn" style="width: 100%; padding: 10px; background: #000; color: white; border: 1px solid #333; margin-bottom: 15px;">
 
-        <div class="form-group">
-            <label>> SET GOAL OBJECTIVE</label>
-            <input type="text" id="g-rsn" placeholder="e.g. New Streaming Mic" value="New Goal">
-        </div>
+    <button onclick="updateGoal()" style="width: 100%; padding: 10px; background: #00f3ff; font-weight: bold; cursor: pointer;">UPDATE GOAL</button>
 
-        <button class="btn" onclick="saveGoal()">Update Goal System</button>
-
-        <div class="obs-box">
-            <label style="color: var(--magenta);">LINK TO OBS BROWSER SOURCE:</label>
-            <div class="copy-wrapper">
-                <input type="text" id="obs-url" class="obs-input" readonly value="https://xdtip.in/goal/<%= user.username %>">
-                <button class="copy-btn" onclick="copyLink()">COPY</button>
-            </div>
-            <p style="font-size: 10px; color: #555; margin-top: 5px;">* Add this URL to OBS. Recommended size: 450x150</p>
-        </div>
+    <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px;">
+        <p style="color: #ff00ea; font-size: 12px;">OBS BROWSER SOURCE URL:</p>
+        <input type="text" readonly value="https://xdtip.in/goal/<%= user.username %>" style="width: 80%; background: #000; color: #ff00ea; border: 1px solid #ff00ea; padding: 5px;">
     </div>
+</div>
   
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
@@ -618,52 +610,22 @@ async function replayLastAlert() {
   }
 }
 
-  // Use EJS to inject the username safely into JS
-        const activeUser = "<%= user.username %>";
+  async function updateGoal() {
+    const amount = document.getElementById('goal-amt').value;
+    const reason = document.getElementById('goal-rsn').value;
+    
+    const res = await fetch('/api/update-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: "<%= user.username %>",
+            amount: amount,
+            reason: reason
+        })
+    });
 
-        async function saveGoal() {
-            const amount = document.getElementById('g-amt').value;
-            const reason = document.getElementById('g-rsn').value;
-
-            if (!amount || !reason) {
-                alert("CRITICAL ERROR: Data fields cannot be empty.");
-                return;
-            }
-
-            console.log("Initiating Uplink for:", activeUser);
-
-            try {
-                const response = await fetch('/api/update-goal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: activeUser,
-                        amount: amount,
-                        reason: reason
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    alert("UPLINK SUCCESSFUL: Goal synchronized.");
-                } else {
-                    console.error("Server Response:", data);
-                    alert("UPLINK FAILED: " + (data.error || "Unknown Error"));
-                }
-            } catch (err) {
-                console.error("Network Error:", err);
-                alert("CONNECTION LOST: Could not reach the server.");
-            }
-        }
-
-        function copyLink() {
-            const copyText = document.getElementById("obs-url");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999); // For mobile
-            document.execCommand("copy");
-            alert("Link copied to clipboard!");
-        }
+    if (res.ok) alert("Goal System Updated!");
+}
   
 </script>
 
