@@ -527,44 +527,73 @@ app.get('/api/cashfree-verify', async (req, res) => {
     }
 });
 
-// Route: Serve the Goal Overlay using the PRIVATE TOKEN
-app.get('/goal/:obsToken', async (req, res) => {
-    const { obsToken } = req.params;
+// server.js
+const { createClient } = require('@supabase/supabase-js');
 
-    // 1. Find which user owns this specific token
-    const { data: userData, error } = await supabase
-        .from('users')
-        .select('username')
-        .eq('obs_token', obsToken)
-        .single();
+// CRITICAL: Use SERVICE_ROLE_KEY here, NOT the Anon Key
+const supabase = createClient(
+  process.env.SUPABASE_URL, 
+  process.env.SUPABASE_SERVICE_ROLE_KEY 
+);
 
-    if (error || !userData) {
-        return res.status(404).send("<h1>ERROR: INVALID_UPLINK_TOKEN</h1>");
-    }
-
-    // 2. Render the overlay and pass the username so it can calculate tip totals
-    res.render('goal_overlay', { 
-        username: userData.username,
-        supabaseUrl: process.env.SUPABASE_URL,
-        supabaseKey: process.env.SUPABASE_ANON_KEY 
-    });
-});
-
-// Route: API to update goal settings
 app.post('/api/update-goal', async (req, res) => {
     const { username, amount, reason } = req.body;
-    
+
     const { error } = await supabase
-        .from('goal_settings')
-        .upsert({ 
-            username: username, 
+        .from('users')
+        .update({ 
             goal_amount: parseFloat(amount), 
             goal_reason: reason 
-        });
+        })
+        .eq('username', username);
 
     if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
 });
+
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize with Service Role Key for backend administration
+const supabase = createClient(
+    process.env.SUPABASE_URL, 
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// ROUTE: Update Goal Settings
+app.post('/api/update-goal', async (req, res) => {
+    const { username, amount, reason } = req.body;
+
+    const { error } = await supabase
+        .from('users')
+        .update({ 
+            goal_amount: parseFloat(amount), 
+            goal_reason: reason 
+        })
+        .eq('username', username);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ success: true });
+});
+
+// ROUTE: Serve Overlay by obsToken
+app.get('/goal/:obsToken', async (req, res) => {
+    const { obsToken } = req.params;
+
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('username, goal_amount, goal_reason, goal_current')
+        .eq('obs_token', obsToken)
+        .single();
+
+    if (error || !user) return res.status(404).send("Invalid Token");
+
+    res.render('goal_overlay', { 
+        user, 
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseKey: process.env.SUPABASE_ANON_KEY // Give Public key to frontend
+    });
+});
+
 // ===================
 // START SERVER
 // ===================
