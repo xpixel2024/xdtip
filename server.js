@@ -530,21 +530,25 @@ app.get('/api/cashfree-verify', async (req, res) => {
 // API to update goal data
 app.post('/api/update-goal', async (req, res) => {
     const { username, amount, reason } = req.body;
-    try {
-        const { error } = await supabase
-            .from('goal_settings')
-            .upsert({ 
-                username: username, 
-                goal_amount: parseFloat(amount), 
-                goal_reason: reason 
-            });
-
-        if (error) throw error;
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Failed to update goal" });
+    
+    // Validate inputs on the server side too
+    if (!username || isNaN(amount)) {
+        return res.status(400).json({ error: "Invalid data provided." });
     }
+
+    const { error } = await supabase
+        .from('goal_settings')
+        .upsert({ 
+            username: username, 
+            goal_amount: parseFloat(amount), 
+            goal_reason: reason 
+        }, { onConflict: 'username' }); // Ensures it updates if user exists
+
+    if (error) {
+        console.error("DB Error:", error.message);
+        return res.status(500).json({ error: error.message });
+    }
+    res.json({ success: true });
 });
 
 // Serve the Goal Overlay
