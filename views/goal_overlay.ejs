@@ -49,6 +49,21 @@
             .subscribe();
 
         updateUI(); // Initial load
+
+supabase.channel('custom-filter-channel') // Any name works here
+  .on(
+    'postgres_changes', 
+    { 
+      event: 'INSERT',   // Must be 'INSERT' (capitalized)
+      schema: 'public', 
+      table: 'tips'      // Must match your table name exactly
+    }, 
+    (payload) => {
+      console.log('Change received!', payload);
+      updateUI(); // This function recalculates the bar
+    }
+  )
+  .subscribe();
     </script>
 </body>
 </html>
