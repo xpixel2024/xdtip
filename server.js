@@ -451,7 +451,6 @@ app.get('/api/cashfree-verify', async (req, res) => {
     const { order_id, u, n, m } = req.query;
 
     try {
-        // 1. Verify with Cashfree
         const verifyRes = await axios.get(`https://sandbox.cashfree.com/pg/orders/${order_id}`, {
             headers: {
                 'x-client-id': process.env.CASHFREE_CLIENT_ID,
@@ -461,23 +460,38 @@ app.get('/api/cashfree-verify', async (req, res) => {
         });
 
         if (verifyRes.data.order_status === "PAID") {
-            // 2. Save to Supabase (Matches your original /api/tip logic)
-            const { error } = await supabase
-                .from("tips")
-                .insert([{
-                    username: u,
-                    sender_name: n,
-                    message: m,
-                    amount: verifyRes.data.order_amount,
-                    payment_id: order_id
-                }]);
+            const amount = verifyRes.data.order_amount;
 
-            if (error) throw error;
+            // 1. Save to Supabase
+            await supabase.from("tips").insert([{
+                username: u, sender_name: n, message: m, amount: amount, payment_id: order_id
+            }]);
 
-            // 3. Redirect back to profile with success
+            // 2. 🔥 TRIGGER THE ALERT (This is the missing part!)
+            const alertData = {
+                tipper: n || "Anonymous",
+                amount: amount,
+                message: m || "System uplink successful!"
+            };
+
+            const roomName = `alert-room-${u.toLowerCase()}`;
+            const channel = supabase.channel(roomName);
+            
+            channel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    await channel.send({
+                        type: 'broadcast',
+                        event: 'test-tip', // This must match your OBS overlay listener
+                        payload: alertData
+                    });
+                    setTimeout(() => { supabase.removeChannel(channel); }, 1000);
+                }
+            });
+
+            // 3. Success Feedback
             res.send(`
                 <script>
-                    alert("CREDIT TRANSMITTED SUCCESSFULLY!");
+                    alert("PAYMENT VERIFIED & ALERT SENT!");
                     window.location.href = "/${u}";
                 </script>
             `);
