@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const axios = require('axios');
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
@@ -409,6 +410,43 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
     } catch (err) {
         console.error("KYC Error:", err);
         res.status(500).json({ error: "Failed to approve KYC" });
+    }
+});
+
+// ... your existing code ...
+
+app.post('/api/create-cashfree-order', async (req, res) => {
+    const { amount, customerName, username, customerMessage } = req.body;
+
+    try {
+        const response = await axios.post('https://sandbox.cashfree.com/pg/orders', {
+            order_amount: parseFloat(amount),
+            order_currency: "INR",
+            order_id: `order_${Date.now()}`, 
+            customer_details: {
+                customer_id: `cust_${Date.now()}`,
+                customer_name: customerName,
+                customer_phone: "9999999999", // Cashfree requires this field
+            },
+            order_meta: {
+                // Change this to your actual success page URL
+                return_url: "https://your-app-name.onrender.com/payment-status?order_id={order_id}",
+            },
+            order_note: `Support for ${username}`
+        }, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_CLIENT_ID, 
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY, 
+                'x-api-version': '2023-08-01'
+            }
+        });
+
+        // This returns the payment_session_id to your tip.ejs
+        res.json({ payment_session_id: response.data.payment_session_id });
+        
+    } catch (error) {
+        console.error("Cashfree Error:", error.response ? error.response.data : error.message);
+        res.status(500).json({ error: "Failed to create order" });
     }
 });
 // ===================
