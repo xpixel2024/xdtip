@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-
     <style>
         /* Keeping your original CSS styles exactly the same */
         :root { --neon-cyan: #00f3ff; --neon-magenta: #ff00ea; --bg-dark: #03040b; --panel-bg: rgba(5, 8, 20, 0.85); --grid-color: rgba(0, 243, 255, 0.05); }
@@ -81,58 +80,58 @@
     </div>
 
     <script>
-    // Initialize Cashfree
-    const cashfree = Cashfree({
-    mode: "sandbox" // Change to "production" when your Render env is set to live
-});
+    // 1. Initialize Cashfree (Sandbox mode for testing)
+    const cashfree = Cashfree({ mode: "sandbox" });
 
-const form = document.getElementById('payment-form');
-const payBtn = document.getElementById('pay-button');
-const creatorUsername = "<%= user.username %>";
+    const form = document.getElementById('payment-form');
+    const payBtn = document.getElementById('pay-button');
+    const creatorUsername = "<%= user.username %>";
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    const name = document.getElementById('sender-name').value;
-    const message = document.getElementById('sender-message').value;
-    const amount = document.getElementById('tip-amount').value;
+        const name = document.getElementById('sender-name').value;
+        const message = document.getElementById('sender-message').value;
+        const amount = document.getElementById('tip-amount').value;
 
-    payBtn.innerText = "INITIALIZING UPLINK...";
-    payBtn.disabled = true;
+        // Visual feedback
+        payBtn.innerText = "INITIALIZING UPLINK...";
+        payBtn.disabled = true;
 
-    try {
-        // STEP 1: Request a session from your Backend
-        const response = await fetch('/api/create-cashfree-order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                amount: amount,
-                username: creatorUsername,
-                customerName: name,
-                customerMessage: message
-            })
-        });
+        try {
+            // 2. Ask your server.js to create the order
+            const response = await fetch('/api/create-cashfree-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: amount,
+                    username: creatorUsername,
+                    customerName: name,
+                    customerMessage: message
+                })
+            });
 
-        const orderData = await response.json();
+            const orderData = await response.json();
 
-        if (!orderData.payment_session_id) {
-            throw new Error("Could not establish payment session.");
+            if (!orderData.payment_session_id) {
+                throw new Error("Could not fetch session from server.");
+            }
+
+            // 3. Open the Cashfree Checkout overlay
+            let checkoutOptions = {
+                paymentSessionId: orderData.payment_session_id,
+                redirectTarget: "_self", // Keeps user on the same tab
+            };
+
+            cashfree.checkout(checkoutOptions);
+
+        } catch (err) {
+            console.error(err);
+            alert("SYSTEM ERROR: Check console for logs.");
+            payBtn.disabled = false;
+            payBtn.innerText = "[ TRANSMIT CREDITS ]";
         }
-
-        // STEP 2: Open the Cashfree Checkout Overlay
-        let checkoutOptions = {
-            paymentSessionId: orderData.payment_session_id,
-            redirectTarget: "_self", 
-        };
-
-        cashfree.checkout(checkoutOptions);
-
-    } catch (err) {
-        alert("CRITICAL ERROR: " + err.message);
-        payBtn.disabled = false;
-        payBtn.innerText = "[ TRANSMIT CREDITS ]";
-    }
-});
-    </script>
+    });
+</script>
 </body>
 </html>
