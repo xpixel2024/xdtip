@@ -73,10 +73,14 @@
 
         // Listen for Realtime inserts into 'tips' table
         client.channel('any')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tips' }, payload => {
-                fetchGoalData();
-            })
-            .subscribe();
+            // 1. Ensure event is 'INSERT'
+.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tips' }, payload => {
+    console.log("New Tip Detected!", payload);
+    fetchGoalData(); // This must be the name of your update function
+})
+
+// 2. Ensure you are subscribing!
+.subscribe();
 
         // Initial Load
         fetchGoalData();
