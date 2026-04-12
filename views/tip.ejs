@@ -83,71 +83,56 @@
     <script>
     // Initialize Cashfree
     const cashfree = Cashfree({
-        mode: "sandbox", // Use "production" for real payments
-    });
+    mode: "sandbox" // Change to "production" when your Render env is set to live
+});
 
-    const form = document.getElementById('payment-form');
-    const payBtn = document.getElementById('pay-button');
-    const creatorUsername = "<%= user.username %>";
+const form = document.getElementById('payment-form');
+const payBtn = document.getElementById('pay-button');
+const creatorUsername = "<%= user.username %>";
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-        const name = document.getElementById('sender-name').value;
-        const message = document.getElementById('sender-message').value;
-        const amount = document.getElementById('tip-amount').value;
+    const name = document.getElementById('sender-name').value;
+    const message = document.getElementById('sender-message').value;
+    const amount = document.getElementById('tip-amount').value;
 
-        if (!amount || amount < 10) {
-            alert("Minimum amount is ₹10");
-            return;
+    payBtn.innerText = "INITIALIZING UPLINK...";
+    payBtn.disabled = true;
+
+    try {
+        // STEP 1: Request a session from your Backend
+        const response = await fetch('/api/create-cashfree-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: amount,
+                username: creatorUsername,
+                customerName: name,
+                customerMessage: message
+            })
+        });
+
+        const orderData = await response.json();
+
+        if (!orderData.payment_session_id) {
+            throw new Error("Could not establish payment session.");
         }
 
-        payBtn.innerText = "INITIALIZING SESSION...";
-        payBtn.disabled = true;
+        // STEP 2: Open the Cashfree Checkout Overlay
+        let checkoutOptions = {
+            paymentSessionId: orderData.payment_session_id,
+            redirectTarget: "_self", 
+        };
 
-        try {
-            // STEP 1: Create Order on your backend to get payment_session_id
-            const response = await fetch('/api/create-cashfree-order', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    amount: amount,
-                    username: creatorUsername,
-                    customerName: name,
-                    customerMessage: message
-                })
-            });
+        cashfree.checkout(checkoutOptions);
 
-            const sessionData = await response.json();
-
-            if (!sessionData.payment_session_id) {
-                throw new Error("Failed to create payment session");
-            }
-
-            // STEP 2: Trigger the Cashfree Checkout
-            let checkoutOptions = {
-                paymentSessionId: sessionData.payment_session_id,
-                redirectTarget: "_self", 
-            };
-
-            cashfree.checkout(checkoutOptions).then((result) => {
-                if (result.error) {
-                    alert("TRANSMISSION ERROR: " + result.error.message);
-                    payBtn.disabled = false;
-                    payBtn.innerText = "[ TRANSMIT CREDITS ]";
-                }
-                if (result.redirect) {
-                    // Payment is being processed
-                    console.log("Redirecting to payment...");
-                }
-            });
-
-        } catch (err) {
-            alert("PROTOCOL ERROR: " + err.message);
-            payBtn.disabled = false;
-            payBtn.innerText = "[ TRANSMIT CREDITS ]";
-        }
-    });
+    } catch (err) {
+        alert("CRITICAL ERROR: " + err.message);
+        payBtn.disabled = false;
+        payBtn.innerText = "[ TRANSMIT CREDITS ]";
+    }
+});
     </script>
 </body>
 </html>
