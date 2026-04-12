@@ -592,6 +592,36 @@ async function replayLastAlert() {
   }
 }
   
+<div class="card">
+    <div class="sys-label">GOAL_CONFIGURATION</div>
+    <div class="form-group">
+        <label>> GOAL TARGET (INR)</label>
+        <input type="number" id="goal-amount" placeholder="e.g. 5000">
+    </div>
+    <div class="form-group">
+        <label>> GOAL OBJECTIVE (REASON)</label>
+        <input type="text" id="goal-reason" placeholder="e.g. New Graphics Card">
+    </div>
+    <button onclick="updateGoal()" class="btn">[ UPDATE OVERLAY ]</button>
+</div>
+
+<script>
+async function updateGoal() {
+    const amount = document.getElementById('goal-amount').value;
+    const reason = document.getElementById('goal-reason').value;
+
+    const response = await fetch('/api/update-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            username: window.user.username, // Assuming you have user data in JS
+            amount: amount, 
+            reason: reason 
+        })
+    });
+
+    if (response.ok) alert("GOAL UPLINK COMPLETE");
+}
 </script>
 
 <div class="footer">
