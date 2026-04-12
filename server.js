@@ -449,6 +449,50 @@ app.post('/api/create-cashfree-order', async (req, res) => {
         res.status(500).json({ error: "Failed to create order" });
     }
 });
+
+app.get('/payment-status', async (req, res) => {
+    const { order_id } = req.query;
+
+    if (!order_id) {
+        return res.send("Invalid Request: No Order ID found.");
+    }
+
+    try {
+        // 1. Verify the payment status with Cashfree
+        const response = await axios.get(`https://sandbox.cashfree.com/pg/orders/${order_id}`, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_CLIENT_ID,
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+                'x-api-version': '2023-08-01'
+            }
+        });
+
+        const orderStatus = response.data.order_status;
+
+        if (orderStatus === "PAID") {
+            // 2. PAYMENT SUCCESSFUL! 
+            // Here you should save the data to your database 
+            // (e.g., update your 'tips' table using the order_id)
+            
+            res.send(`
+                <html>
+                    <body style="background:#03040b; color:#00f3ff; font-family:sans-serif; text-align:center; padding-top:100px;">
+                        <h1>✓ TRANSMISSION SUCCESSFUL</h1>
+                        <p>Order ID: ${order_id} has been verified.</p>
+                        <a href="/" style="color:#ff00ea;">Return to Home</a>
+                    </body>
+                </html>
+            `);
+        } else {
+            // 3. PAYMENT FAILED or PENDING
+            res.send(`<h1>Payment Status: ${orderStatus}</h1><p>Please try again.</p>`);
+        }
+
+    } catch (error) {
+        console.error("Verification Error:", error.response ? error.response.data : error.message);
+        res.status(500).send("Error verifying payment.");
+    }
+});
 // ===================
 // START SERVER
 // ===================
