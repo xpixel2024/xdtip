@@ -184,19 +184,6 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
-
-<div class="setup-container">
-    <h3>Goal Settings</h3>
-    
-    <label>Goal Reason (Title)</label>
-    <input type="text" id="goal_reason" placeholder="e.g. New Mic Fund">
-
-    <label>Goal Amount ($)</label>
-    <input type="number" id="goal_amount" placeholder="100">
-
-    <button onclick="saveGoal()">Update Goal</button>
-</div>
-  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
@@ -604,24 +591,6 @@ async function replayLastAlert() {
     alert("Network error. Is the server online?");
   }
 }
-
-  async function saveGoal() {
-        const reason = document.getElementById('goal_reason').value;
-        const amount = document.getElementById('goal_amount').value;
-
-        // Replace with your API endpoint or Supabase logic
-        const response = await fetch('/api/update-goal', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                token: userToken, // Your logged-in user's token
-                goal_reason: reason,
-                goal_amount: amount
-            })
-        });
-
-        if (response.ok) alert("Goal updated!");
-    }
   
 </script>
 
