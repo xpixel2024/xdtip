@@ -527,10 +527,9 @@ app.get('/api/cashfree-verify', async (req, res) => {
     }
 });
 
-// API to update goal settings
+// API to update goal data
 app.post('/api/update-goal', async (req, res) => {
     const { username, amount, reason } = req.body;
-
     try {
         const { error } = await supabase
             .from('goal_settings')
@@ -543,13 +542,19 @@ app.post('/api/update-goal', async (req, res) => {
         if (error) throw error;
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error(err);
+        res.status(500).json({ error: "Failed to update goal" });
     }
 });
 
-// Route to serve the actual Overlay Page
+// Serve the Goal Overlay
 app.get('/goal/:username', (req, res) => {
-    res.render('goal_overlay', { username: req.params.username });
+    // Pass Supabase credentials so the frontend can connect
+    res.render('goal_overlay', { 
+        username: req.params.username,
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseKey: process.env.SUPABASE_ANON_KEY 
+    });
 });
 
 // ===================
