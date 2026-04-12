@@ -3,48 +3,58 @@
 <head>
     <style>
         body { background: transparent; margin: 0; padding: 10px; font-family: sans-serif; color: white; overflow: hidden; }
-        .container { width: 400px; background: rgba(0,0,0,0.8); border: 1px solid #00f3ff; padding: 15px; }
+        .container { width: 400px; background: rgba(0,0,0,0.85); border: 1px solid #00f3ff; padding: 15px; border-radius: 4px; }
         .bar-bg { width: 100%; height: 25px; background: #111; border: 1px solid #333; position: relative; }
-        .bar-fill { height: 100%; background: linear-gradient(90deg, #00f3ff, #ff00ea); width: 0%; transition: width 1s; }
-        .label-box { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 14px; text-transform: uppercase; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #00f3ff, #ff00ea); width: 0%; transition: width 1s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+        .labels { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="label-box">
-            <span id="rsn-text">LOADING...</span>
+        <div class="labels">
+            <span id="rsn-text"><%= user.goal_reason %></span>
             <span id="perc-text">0%</span>
         </div>
         <div class="bar-bg">
             <div id="bar" class="bar-fill"></div>
         </div>
-        <div style="text-align: right; font-size: 12px; margin-top: 5px; opacity: 0.7;">
-            <span id="cur-amt">₹0</span> / <span id="tar-amt">₹0</span>
+        <div style="text-align: right; font-size: 12px; margin-top: 5px; opacity: 0.8;">
+            <span id="cur-amt">₹<%= user.goal_current %></span> / <span id="tar-amt">₹<%= user.goal_amount %></span>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script>
         const client = supabase.createClient('<%= supabaseUrl %>', '<%= supabaseKey %>');
-        const user = "<%= username %>";
+        const username = "<%= user.username %>";
 
-        async function updateUI() {
-            const { data: settings } = await client.from('goal_settings').select('*').eq('username', user).single();
-            const { data: tips } = await client.from('tips').select('amount').eq('username', user);
-            
-            const total = tips ? tips.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
-            const target = settings ? settings.goal_amount : 1000;
-            const percentage = Math.min((total / target) * 100, 100).toFixed(1);
+        async function refreshUI() {
+            const { data: userData } = await client
+                .from('users')
+                .select('goal_amount, goal_reason, goal_current')
+                .eq('username', username)
+                .single();
 
-            document.getElementById('rsn-text').innerText = settings ? settings.goal_reason : "TIP GOAL";
-            document.getElementById('tar-amt').innerText = "₹" + target;
-            document.getElementById('cur-amt').innerText = "₹" + total;
-            document.getElementById('perc-text').innerText = percentage + "%";
-            document.getElementById('bar').style.width = percentage + "%";
+            if (userData) {
+                const current = userData.goal_current || 0;
+                const target = userData.goal_amount || 1000;
+                const percentage = Math.min((current / target) * 100, 100).toFixed(1);
+
+                document.getElementById('rsn-text').innerText = userData.goal_reason;
+                document.getElementById('cur-amt').innerText = "₹" + current;
+                document.getElementById('tar-amt').innerText = "₹" + target;
+                document.getElementById('perc-text').innerText = percentage + "%";
+                document.getElementById('bar').style.width = percentage + "%";
+            }
         }
 
-        client.channel('tips-stream').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tips' }, updateUI).subscribe();
-        updateUI();
+        // Realtime listener: Refresh when the users table changes
+        client.channel('live-goal')
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `username=eq.${username}` }, refreshUI)
+            .subscribe();
+
+        // Initial fetch
+        refreshUI();
     </script>
 </body>
 </html>
