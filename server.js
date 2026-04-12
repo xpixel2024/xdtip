@@ -526,40 +526,6 @@ app.get('/api/cashfree-verify', async (req, res) => {
         res.status(500).send("Verification Protocol Failed.");
     }
 });
-
-// Route for the Goal Overlay
-app.get('/goal/:obsToken', async (req, res) => {
-    const { obsToken } = req.params;
-
-    // Fetch goal data from Supabase
-    const { data: user, error } = await supabase
-        .from('users')
-        .filter('obs_token', 'eq', obsToken)
-        .single();
-
-    if (error || !user) {
-        return res.status(404).send('Invalid Token');
-    }
-
-    // Render the EJS file and pass the user data
-    res.render('goal_overlay', { 
-        goal_reason: user.goal_reason,
-        goal_current: user.goal_current || 0,
-        goal_amount: user.goal_amount || 100,
-        obsToken: obsToken
-    });
-});
-
-// Real-time update logic (Socket.io)
-io.on('connection', (socket) => {
-    socket.on('join-goal', (token) => {
-        socket.join(token); // Overlay joins a room named after its token
-    });
-});
-
-// When a tip is received (Example logic)
-// io.to(userToken).emit('update-goal', { current: newAmount });
-
 // ===================
 // START SERVER
 // ===================
