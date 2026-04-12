@@ -526,22 +526,6 @@ app.get('/api/cashfree-verify', async (req, res) => {
         res.status(500).send("Verification Protocol Failed.");
     }
 });
-
-app.post('/api/update-goal', async (req, res) => {
-    const { username, amount, reason } = req.body;
-
-    const { error } = await supabase
-        .from('users')
-        .update({ 
-            goal_amount: parseFloat(amount), 
-            goal_reason: reason 
-        })
-        .eq('username', username);
-
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ success: true });
-});
-
 // ===================
 // START SERVER
 // ===================
