@@ -184,12 +184,6 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
-  <div class="card col">
-    <h3>DIAGNOSTICS</h3>
-    <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
-    <button class="btn red" onclick="replayLastAlert()">REPLAY LAST</button>
-  </div>
-</div>
 
 <div class="card" style="border: 1px solid #00f3ff; padding: 20px; background: rgba(0,0,0,0.5);">
     <div class="sys-label" style="color: #00f3ff; font-weight: bold; margin-bottom: 15px;">[ GOAL_CONTROL_UNIT ]</div>
@@ -219,6 +213,13 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
     </div>
 </div>
   
+  <div class="card col">
+    <h3>DIAGNOSTICS</h3>
+    <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
+    <button class="btn red" onclick="replayLastAlert()">REPLAY LAST</button>
+  </div>
+</div>
+
 <div class="section row">
   <div class="card col">
     <h3>INCOMING TRANSMISSIONS</h3>
@@ -618,6 +619,32 @@ async function replayLastAlert() {
     console.error("FATAL ERROR during fetch:", err);
     alert("Network error. Is the server online?");
   }
+}
+
+  async function saveGoal() {
+    const amt = document.getElementById('g-amt').value;
+    const rsn = document.getElementById('g-rsn').value;
+    
+    if(!amt || !rsn) return alert("Please fill all fields");
+
+    const res = await fetch('/api/update-goal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            username: "<%= user.username %>",
+            amount: amt,
+            reason: rsn
+        })
+    });
+
+    if (res.ok) alert("Uplink Successful: Goal Updated.");
+}
+
+function copyLink() {
+    const copyText = document.getElementById("obs-url");
+    copyText.select();
+    document.execCommand("copy");
+    alert("Link copied to clipboard!");
 }
   
 </script>
