@@ -186,36 +186,24 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
   </div>
 
 <div class="card">
-    <div class="sys-label">GOAL_CONFIGURATION</div>
-    <div class="form-group">
-        <label>> GOAL TARGET (INR)</label>
-        <input type="number" id="goal-amount" placeholder="e.g. 5000">
-    </div>
-    <div class="form-group">
-        <label>> GOAL OBJECTIVE (REASON)</label>
-        <input type="text" id="goal-reason" placeholder="e.g. New Graphics Card">
-    </div>
-    <button onclick="updateGoal()" class="btn">[ UPDATE OVERLAY ]</button>
+    <div class="sys-label">GOAL_CONTROL</div>
+    <input type="number" id="g-amt" placeholder="Target Amount (e.g. 5000)">
+    <input type="text" id="g-rsn" placeholder="Goal Reason (e.g. New Mic)">
+    <button onclick="saveGoal()" class="btn" style="margin-top:10px;">[ UPDATE GOAL ]</button>
 </div>
 
-<script>
-async function updateGoal() {
-    const amount = document.getElementById('goal-amount').value;
-    const reason = document.getElementById('goal-reason').value;
-
-    const response = await fetch('/api/update-goal', {
+async function saveGoal() {
+    const res = await fetch('/api/update-goal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            username: window.user.username, // Assuming you have user data in JS
-            amount: amount, 
-            reason: reason 
+        body: JSON.stringify({
+            username: localStorage.getItem('username'), // Or however you store session
+            amount: document.getElementById('g-amt').value,
+            reason: document.getElementById('g-rsn').value
         })
     });
-
-    if (response.ok) alert("GOAL UPLINK COMPLETE");
+    if (res.ok) alert("Goal Updated!");
 }
-</script>
   
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
