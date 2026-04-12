@@ -1,6 +1,5 @@
 const express = require("express");
 const path = require("path");
-const axios = require('axios');
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
@@ -42,10 +41,6 @@ app.get("/dashboard", (req, res) => res.sendFile(path.join(__dirname, "public/da
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public/admin.html")));
 app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 app.get("/terms", (req, res) => res.sendFile(path.join(__dirname, "public/terms.html")));
-app.get("/learn", (req, res) => res.sendFile(path.join(__dirname, "public/learn.html")));
-app.get("/contact", (req, res) => res.sendFile(path.join(__dirname, "public/contact.html")));
-app.get("/privacy", (req, res) => res.sendFile(path.join(__dirname, "public/privacy.html")));
-app.get("/refund", (req, res) => res.sendFile(path.join(__dirname, "public/refund.html")));
 
 
 // ===================
@@ -410,87 +405,6 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
     } catch (err) {
         console.error("KYC Error:", err);
         res.status(500).json({ error: "Failed to approve KYC" });
-    }
-});
-
-// ... your existing code ...
-
-app.post('/api/create-cashfree-order', async (req, res) => {
-    const { amount, customerName, username, customerMessage } = req.body;
-
-    try {
-        const response = await axios.post('https://sandbox.cashfree.com/pg/orders', {
-            order_amount: parseFloat(amount),
-            order_currency: "INR",
-            order_id: `order_${Date.now()}`, 
-            customer_details: {
-                customer_id: `cust_${Date.now()}`,
-                customer_name: customerName,
-                customer_phone: "9999999999", // Cashfree requires this field
-            },
-            order_meta: {
-                // Change this to your actual success page URL
-                return_url: "https://your-app-name.onrender.com/payment-status?order_id={order_id}",
-            },
-            order_note: `Support for ${username}`
-        }, {
-            headers: {
-                'x-client-id': process.env.CASHFREE_CLIENT_ID, 
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY, 
-                'x-api-version': '2023-08-01'
-            }
-        });
-
-        // This returns the payment_session_id to your tip.ejs
-        res.json({ payment_session_id: response.data.payment_session_id });
-        
-    } catch (error) {
-        console.error("Cashfree Error:", error.response ? error.response.data : error.message);
-        res.status(500).json({ error: "Failed to create order" });
-    }
-});
-
-app.get('/payment-status', async (req, res) => {
-    const { order_id } = req.query;
-
-    if (!order_id) {
-        return res.send("Invalid Request: No Order ID found.");
-    }
-
-    try {
-        // 1. Verify the payment status with Cashfree
-        const response = await axios.get(`https://sandbox.cashfree.com/pg/orders/${order_id}`, {
-            headers: {
-                'x-client-id': process.env.CASHFREE_CLIENT_ID,
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-                'x-api-version': '2023-08-01'
-            }
-        });
-
-        const orderStatus = response.data.order_status;
-
-        if (orderStatus === "PAID") {
-            // 2. PAYMENT SUCCESSFUL! 
-            // Here you should save the data to your database 
-            // (e.g., update your 'tips' table using the order_id)
-            
-            res.send(`
-                <html>
-                    <body style="background:#03040b; color:#00f3ff; font-family:sans-serif; text-align:center; padding-top:100px;">
-                        <h1>✓ TRANSMISSION SUCCESSFUL</h1>
-                        <p>Order ID: ${order_id} has been verified.</p>
-                        <a href="/" style="color:#ff00ea;">Return to Home</a>
-                    </body>
-                </html>
-            `);
-        } else {
-            // 3. PAYMENT FAILED or PENDING
-            res.send(`<h1>Payment Status: ${orderStatus}</h1><p>Please try again.</p>`);
-        }
-
-    } catch (error) {
-        console.error("Verification Error:", error.response ? error.response.data : error.message);
-        res.status(500).send("Error verifying payment.");
     }
 });
 // ===================
