@@ -646,6 +646,45 @@ function copyLink() {
     document.execCommand("copy");
     alert("Link copied to clipboard!");
 }
+
+  async function saveGoal() {
+    console.log("Attempting to update goal...");
+    
+    const amt = document.getElementById('g-amt').value;
+    const rsn = document.getElementById('g-rsn').value;
+    
+    // Ensure we have a valid username from EJS
+    const username = "<%= user.username %>"; 
+
+    if (!amt || !rsn) {
+        alert("System Error: Both amount and reason are required.");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/update-goal', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                amount: amt,
+                reason: rsn
+            })
+        });
+
+        if (response.ok) {
+            alert("Uplink Successful: Goal settings updated.");
+            // Refresh the OBS link box if needed
+            document.getElementById('obs-url').value = `https://xdtip.in/goal/${username}`;
+        } else {
+            const errorData = await response.json();
+            alert("Uplink Failed: " + (errorData.error || "Unknown server error"));
+        }
+    } catch (err) {
+        console.error("Transmission Interrupted:", err);
+        alert("Fatal Error: Could not connect to the server.");
+    }
+}
   
 </script>
 
