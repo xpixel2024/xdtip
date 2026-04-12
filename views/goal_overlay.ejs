@@ -1,60 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <style>
-        body { background: transparent; margin: 0; padding: 10px; font-family: sans-serif; color: white; overflow: hidden; }
-        .container { width: 400px; background: rgba(0,0,0,0.85); border: 1px solid #00f3ff; padding: 15px; border-radius: 4px; }
-        .bar-bg { width: 100%; height: 25px; background: #111; border: 1px solid #333; position: relative; }
-        .bar-fill { height: 100%; background: linear-gradient(90deg, #00f3ff, #ff00ea); width: 0%; transition: width 1s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
-        .labels { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        :root { --progress: <%= (goal_current / goal_amount) * 100 %>%; }
+        body { margin: 0; padding: 10px; font-family: 'Arial', sans-serif; overflow: hidden; color: white; }
+        .goal-wrapper { width: 450px; background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px; border: 2px solid #333; }
+        .goal-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .progress-container { width: 100%; height: 25px; background: #222; border-radius: 20px; position: relative; overflow: hidden; }
+        #bar { 
+            height: 100%; width: var(--progress); 
+            background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%); 
+            transition: width 0.8s cubic-bezier(0.17, 0.67, 0.83, 0.67); 
+        }
+        .stats { position: absolute; width: 100%; text-align: center; top: 2px; font-weight: 800; text-shadow: 1px 1px 2px #000; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="labels">
-            <span id="rsn-text"><%= user.goal_reason %></span>
-            <span id="perc-text">0%</span>
-        </div>
-        <div class="bar-bg">
-            <div id="bar" class="bar-fill"></div>
-        </div>
-        <div style="text-align: right; font-size: 12px; margin-top: 5px; opacity: 0.8;">
-            <span id="cur-amt">₹<%= user.goal_current %></span> / <span id="tar-amt">₹<%= user.goal_amount %></span>
+
+<div class="goal-wrapper">
+    <div class="goal-title" id="title"><%= goal_reason %></div>
+    <div class="progress-container">
+        <div id="bar"></div>
+        <div class="stats">
+            $<span id="current"><%= goal_current %></span> / $<span id="total"><%= goal_amount %></span>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <script>
-        const client = supabase.createClient('<%= supabaseUrl %>', '<%= supabaseKey %>');
-        const username = "<%= user.username %>";
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const token = "<%= obsToken %>";
+    
+    socket.emit('join-goal', token);
 
-        async function refreshUI() {
-            const { data: userData } = await client
-                .from('users')
-                .select('goal_amount, goal_reason, goal_current')
-                .eq('username', username)
-                .single();
-
-            if (userData) {
-                const current = userData.goal_current || 0;
-                const target = userData.goal_amount || 1000;
-                const percentage = Math.min((current / target) * 100, 100).toFixed(1);
-
-                document.getElementById('rsn-text').innerText = userData.goal_reason;
-                document.getElementById('cur-amt').innerText = "₹" + current;
-                document.getElementById('tar-amt').innerText = "₹" + target;
-                document.getElementById('perc-text').innerText = percentage + "%";
-                document.getElementById('bar').style.width = percentage + "%";
-            }
-        }
-
-        // Realtime listener: Refresh when the users table changes
-        client.channel('live-goal')
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `username=eq.${username}` }, refreshUI)
-            .subscribe();
-
-        // Initial fetch
-        refreshUI();
-    </script>
+    socket.on('update-goal', (data) => {
+        const percent = (data.current / <%= goal_amount %>) * 100;
+        document.getElementById('bar').style.width = percent + '%';
+        document.getElementById('current').innerText = data.current;
+    });
+</script>
 </body>
 </html>
