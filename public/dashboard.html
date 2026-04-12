@@ -185,20 +185,24 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
     </div>
   </div>
 
-<div style="background: #111; padding: 20px; border: 1px solid #00f3ff; margin: 20px;">
-    <h3 style="color: #00f3ff; margin-top: 0;">Goal Configuration</h3>
+<div class="card" style="background:#0a0f1e; border:1px solid #00f3ff; padding:20px; color:white;">
+    <div style="color:#00f3ff; font-family:monospace; margin-bottom:15px;">[ GOAL_CONFIGURATION_UNIT ]</div>
     
-    <label style="color: #8fa1d0; font-size: 12px;">TARGET AMOUNT (INR)</label><br>
-    <input type="number" id="goal-amt" style="width: 100%; padding: 10px; background: #000; color: white; border: 1px solid #333; margin-bottom: 10px;">
+    <label style="font-size:12px; color:#8fa1d0;">TARGET AMOUNT (INR)</label><br>
+    <input type="number" id="goal-amt" placeholder="5000" style="width:100%; background:#000; color:white; border:1px solid #333; padding:10px; margin-bottom:10px;">
     
-    <label style="color: #8fa1d0; font-size: 12px;">GOAL REASON</label><br>
-    <input type="text" id="goal-rsn" style="width: 100%; padding: 10px; background: #000; color: white; border: 1px solid #333; margin-bottom: 15px;">
+    <label style="font-size:12px; color:#8fa1d0;">GOAL REASON</label><br>
+    <input type="text" id="goal-rsn" placeholder="New PC" style="width:100%; background:#000; color:white; border:1px solid #333; padding:10px; margin-bottom:15px;">
 
-    <button onclick="updateGoal()" style="width: 100%; padding: 10px; background: #00f3ff; font-weight: bold; cursor: pointer;">UPDATE GOAL</button>
+    <button onclick="updateGoal()" style="width:100%; background:#00f3ff; padding:12px; border:none; font-weight:bold; cursor:pointer;">UPDATE SYSTEM</button>
 
-    <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 10px;">
-        <p style="color: #ff00ea; font-size: 12px;">OBS BROWSER SOURCE URL:</p>
-        <input type="text" readonly value="https://xdtip.in/goal/<%= user.username %>" style="width: 80%; background: #000; color: #ff00ea; border: 1px solid #ff00ea; padding: 5px;">
+    <div style="margin-top:20px; border-top:1px dashed #444; padding-top:15px;">
+        <label style="color:#ff00ea; font-size:11px;">PRIVATE OBS SOURCE (DO NOT SHARE):</label>
+        <div style="display:flex; gap:5px; margin-top:5px;">
+            <input type="text" id="obs-url" readonly value="https://xdtip.in/goal/<%= user.obs_token %>" 
+                   style="flex:1; background:#000; color:#ff00ea; border:1px solid #ff00ea; padding:5px; font-size:11px;">
+            <button onclick="copyLink()" style="background:#333; color:white; border:none; padding:5px; cursor:pointer; font-size:10px;">COPY</button>
+        </div>
     </div>
 </div>
   
@@ -613,7 +617,7 @@ async function replayLastAlert() {
   async function updateGoal() {
     const amount = document.getElementById('goal-amt').value;
     const reason = document.getElementById('goal-rsn').value;
-    
+
     const res = await fetch('/api/update-goal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -624,7 +628,14 @@ async function replayLastAlert() {
         })
     });
 
-    if (res.ok) alert("Goal System Updated!");
+    if(res.ok) alert("Uplink Successful: Goal Updated.");
+}
+
+function copyLink() {
+    const copyText = document.getElementById("obs-url");
+    copyText.select();
+    document.execCommand("copy");
+    alert("Link copied to clipboard!");
 }
   
 </script>
