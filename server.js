@@ -451,6 +451,7 @@ app.get('/api/cashfree-verify', async (req, res) => {
     const { order_id, u, n, m } = req.query;
 
     try {
+        // 1. Ask Cashfree if the order was actually paid
         const verifyRes = await axios.get(`https://sandbox.cashfree.com/pg/orders/${order_id}`, {
             headers: {
                 'x-client-id': process.env.CASHFREE_CLIENT_ID,
@@ -460,47 +461,64 @@ app.get('/api/cashfree-verify', async (req, res) => {
         });
 
         if (verifyRes.data.order_status === "PAID") {
-            const amount = verifyRes.data.order_amount;
+            const finalAmount = verifyRes.data.order_amount;
 
-            // 1. Save to Supabase
+            // 2. Save to Supabase 'tips' table
             await supabase.from("tips").insert([{
-                username: u, sender_name: n, message: m, amount: amount, payment_id: order_id
+                username: u,
+                sender_name: n,
+                message: m,
+                amount: finalAmount,
+                payment_id: order_id
             }]);
 
-            // 2. 🔥 TRIGGER THE ALERT (This is the missing part!)
-            const alertData = {
-                tipper: n || "Anonymous",
-                amount: amount,
-                message: m || "System uplink successful!"
-            };
-
+            // 3. 🔥 THE ALERT BROADCAST (Matches your listener)
             const roomName = `alert-room-${u.toLowerCase()}`;
             const channel = supabase.channel(roomName);
             
             channel.subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
+                    // We send the data exactly how your listener expects it
                     await channel.send({
                         type: 'broadcast',
-                        event: 'test-tip', // This must match your OBS overlay listener
-                        payload: alertData
+                        event: 'test-tip', 
+                        payload: {
+                            tipper: n || "Anonymous",
+                            amount: finalAmount,
+                            message: m || "Credits Transmitted!"
+                        }
                     });
-                    setTimeout(() => { supabase.removeChannel(channel); }, 1000);
+                    
+                    // Give it a second to broadcast before closing the channel
+                    setTimeout(() => {
+                        supabase.removeChannel(channel);
+                    }, 1000);
                 }
             });
 
-            // 3. Success Feedback
+            // 4. Send user to a clean success page
             res.send(`
-                <script>
-                    alert("PAYMENT VERIFIED & ALERT SENT!");
-                    window.location.href = "/${u}";
-                </script>
+                <html>
+                <body style="background:#03040b; color:#00f3ff; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; text-align:center;">
+                    <div>
+                        <h1 style="text-shadow: 0 0 10px #00f3ff;">✓ UPLINK SUCCESSFUL</h1>
+                        <p style="color:#8fa1d0;">Transmission verified and alert triggered.</p>
+                        <script>
+                            setTimeout(() => { window.location.href = "/${u}"; }, 3000);
+                        </script>
+                    </div>
+                </body>
+                </html>
             `);
+
         } else {
-            res.redirect(`/${u}?status=failed`);
+            // Payment failed or cancelled
+            res.redirect(`/${u}?error=payment_incomplete`);
         }
+
     } catch (err) {
         console.error("Verification Error:", err.message);
-        res.status(500).send("Verification Failed");
+        res.status(500).send("Verification Protocol Failed.");
     }
 });
 // ===================
