@@ -452,13 +452,13 @@ app.get('/api/cashfree-verify', async (req, res) => {
 
     try {
         // 1. Ask Cashfree if the order was actually paid
-        const verifyRes = await axios.get(`https://sandbox.cashfree.com/pg/orders/${order_id}`, {
-            headers: {
-                'x-client-id': process.env.CASHFREE_CLIENT_ID,
-                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-                'x-api-version': '2023-08-01'
-            }
-        });
+        const verifyRes = await axios.get(`https://api.cashfree.com/pg/orders/${order_id}`, {
+    headers: {
+        'x-client-id': process.env.CASHFREE_CLIENT_ID,
+        'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+        'x-api-version': '2023-08-01'
+    }
+});
 
         if (verifyRes.data.order_status === "PAID") {
             const finalAmount = verifyRes.data.order_amount;
