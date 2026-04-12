@@ -125,7 +125,7 @@
     </div>
 
 <script>
-const cashfree = Cashfree({ mode: "production" }); // or sandbox
+const cashfree = Cashfree({ mode: "sandbox" });
 
 async function pay(){
 
@@ -141,8 +141,25 @@ async function pay(){
 
   cashfree.checkout({
     paymentSessionId: data.payment_session_id,
-    redirectTarget: "_modal"
+    redirectTarget: "_modal",
+    onSuccess: function () {
+      verify(data.order_id);
+    }
   });
+}
+
+async function verify(orderId){
+
+  await fetch("/api/verify-payment", {
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      orderId,
+      creatorId: "YOUR_USER_ID"
+    })
+  });
+
+  alert("Payment Success!");
 }
 </script>
 </body>
