@@ -184,14 +184,6 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
       <button class="btn green" onclick="copy('tipLink')">COPY</button>
     </div>
   </div>
-
-  <div class="card">
-    <div class="sys-label">GOAL_CONTROL</div>
-    <input type="number" id="g-amt" placeholder="Target Amount (e.g. 5000)">
-    <input type="text" id="g-rsn" placeholder="Goal Reason (e.g. New Mic)">
-    <button onclick="saveGoal()" class="btn" style="margin-top:10px;">[ UPDATE GOAL ]</button>
-</div>
-  
   <div class="card col">
     <h3>DIAGNOSTICS</h3>
     <button class="btn green" onclick="sendTestAlert()">TEST ALERT</button>
@@ -199,6 +191,34 @@ tr:hover { background: rgba(0, 243, 255, 0.05); }
   </div>
 </div>
 
+<div class="card" style="border: 1px solid #00f3ff; padding: 20px; background: rgba(0,0,0,0.5);">
+    <div class="sys-label" style="color: #00f3ff; font-weight: bold; margin-bottom: 15px;">[ GOAL_CONTROL_UNIT ]</div>
+    
+    <div style="margin-bottom: 15px;">
+        <label style="display:block; color: #8fa1d0; font-size: 12px;">TARGET AMOUNT (INR)</label>
+        <input type="number" id="g-amt" placeholder="5000" style="width:100%; background:#111; border:1px solid #333; color:white; padding:8px;">
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        <label style="display:block; color: #8fa1d0; font-size: 12px;">GOAL REASON</label>
+        <input type="text" id="g-rsn" placeholder="New PC Build" style="width:100%; background:#111; border:1px solid #333; color:white; padding:8px;">
+    </div>
+
+    <button onclick="saveGoal()" style="width:100%; background:#00f3ff; color:black; border:none; padding:10px; font-weight:bold; cursor:pointer;">
+        UPDATE GOAL SYSTEM
+    </button>
+
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px dashed #333;">
+        <label style="display:block; color: #ff00ea; font-size: 11px; margin-bottom: 5px;">OBS BROWSER SOURCE LINK:</label>
+        <div style="display:flex; gap: 5px;">
+            <input type="text" id="obs-url" readonly 
+                   value="https://xdtip.in/goal/<%= user.username %>" 
+                   style="flex:1; background:#000; border:1px solid #ff00ea; color:#ff00ea; padding:5px; font-size:12px;">
+            <button onclick="copyLink()" style="background:#333; color:white; border:none; padding:5px 10px; font-size:12px; cursor:pointer;">COPY</button>
+        </div>
+    </div>
+</div>
+  
 <div class="section row">
   <div class="card col">
     <h3>INCOMING TRANSMISSIONS</h3>
@@ -598,19 +618,6 @@ async function replayLastAlert() {
     console.error("FATAL ERROR during fetch:", err);
     alert("Network error. Is the server online?");
   }
-}
-
-  async function saveGoal() {
-    const res = await fetch('/api/update-goal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            username: localStorage.getItem('username'), // Or however you store session
-            amount: document.getElementById('g-amt').value,
-            reason: document.getElementById('g-rsn').value
-        })
-    });
-    if (res.ok) alert("Goal Updated!");
 }
   
 </script>
