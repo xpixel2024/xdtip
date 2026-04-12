@@ -527,40 +527,44 @@ app.get('/api/cashfree-verify', async (req, res) => {
     }
 });
 
-// API to update goal data
+// Route: Serve the Goal Overlay using the PRIVATE TOKEN
+app.get('/goal/:obsToken', async (req, res) => {
+    const { obsToken } = req.params;
+
+    // 1. Find which user owns this specific token
+    const { data: userData, error } = await supabase
+        .from('users')
+        .select('username')
+        .eq('obs_token', obsToken)
+        .single();
+
+    if (error || !userData) {
+        return res.status(404).send("<h1>ERROR: INVALID_UPLINK_TOKEN</h1>");
+    }
+
+    // 2. Render the overlay and pass the username so it can calculate tip totals
+    res.render('goal_overlay', { 
+        username: userData.username,
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseKey: process.env.SUPABASE_ANON_KEY 
+    });
+});
+
+// Route: API to update goal settings
 app.post('/api/update-goal', async (req, res) => {
     const { username, amount, reason } = req.body;
     
-    // Validate inputs on the server side too
-    if (!username || isNaN(amount)) {
-        return res.status(400).json({ error: "Invalid data provided." });
-    }
-
     const { error } = await supabase
         .from('goal_settings')
         .upsert({ 
             username: username, 
             goal_amount: parseFloat(amount), 
             goal_reason: reason 
-        }, { onConflict: 'username' }); // Ensures it updates if user exists
+        });
 
-    if (error) {
-        console.error("DB Error:", error.message);
-        return res.status(500).json({ error: error.message });
-    }
+    if (error) return res.status(500).json({ error: error.message });
     res.json({ success: true });
 });
-
-// Serve the Goal Overlay
-app.get('/goal/:username', (req, res) => {
-    // Pass Supabase credentials so the frontend can connect
-    res.render('goal_overlay', { 
-        username: req.params.username,
-        supabaseUrl: process.env.SUPABASE_URL,
-        supabaseKey: process.env.SUPABASE_ANON_KEY 
-    });
-});
-
 // ===================
 // START SERVER
 // ===================
