@@ -1,69 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        body { background: transparent; color: white; font-family: 'Rajdhani', sans-serif; overflow: hidden; }
-        .goal-container { width: 400px; padding: 20px; background: rgba(0,0,0,0.8); border: 1px solid #00f3ff; }
-        .progress-bg { width: 100%; height: 25px; background: #222; border-radius: 5px; overflow: hidden; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #00f3ff, #ff00ea); width: 0%; transition: width 1s; }
-        .goal-info { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; }
-        .reason { text-align: center; margin-top: 10px; color: #00f3ff; text-transform: uppercase; letter-spacing: 2px; }
+        :root { --neon: #00f3ff; --magenta: #ff00ea; }
+        body { background: transparent; margin: 0; padding: 10px; font-family: 'Rajdhani', sans-serif; color: white; overflow: hidden; }
+
+        .goal-wrapper {
+            width: 450px; background: rgba(5, 8, 20, 0.9);
+            border: 1px solid rgba(0, 243, 255, 0.3); padding: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5); position: relative;
+        }
+
+        .goal-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        .reason { color: var(--neon); font-family: 'Share Tech Mono', monospace; }
+        
+        .progress-container {
+            width: 100%; height: 22px; background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333; position: relative; overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%; width: 0%; 
+            background: linear-gradient(90deg, var(--neon), var(--magenta));
+            box-shadow: 0 0 15px var(--neon);
+            transition: width 1.5s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+        }
+
+        .stats { margin-top: 8px; text-align: right; font-size: 14px; font-family: 'Share Tech Mono', monospace; opacity: 0.8; }
     </style>
 </head>
 <body>
-    <div class="goal-container">
-        <div class="goal-info">
-            <span id="current">₹0</span>
-            <span id="target">Goal: ₹0</span>
+    <div class="goal-wrapper">
+        <div class="goal-header">
+            <span id="reason-text">INITIALIZING...</span>
+            <span id="percent-text">0%</span>
         </div>
-        <div class="progress-bg">
+        <div class="progress-container">
             <div id="bar" class="progress-bar"></div>
         </div>
-        <div id="reason" class="reason">LOADING UPLINK...</div>
+        <div class="stats">
+            <span id="current">₹0</span> / <span id="target">₹0</span>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script>
-        const supabase = supabase.createClient('YOUR_URL', 'YOUR_KEY');
-        const username = "<%= username %>";
+        // Replace with your PUBLIC Supabase credentials
+        const supabaseUrl = 'YOUR_SUPABASE_URL';
+        const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+        const user = "<%= username %>";
 
-        async function updateUI() {
-            // 1. Get Goal Config
-            const { data: config } = await supabase.from('goal_settings').select('*').eq('username', username).single();
-            // 2. Get Sum of all tips
-            const { data: tips } = await supabase.from('tips').select('amount').eq('username', username);
+        async function fetchGoalData() {
+            // 1. Get Goal Settings
+            const { data: settings } = await client.from('goal_settings').select('*').ilike('username', user).maybeSingle();
             
-            const total = tips.reduce((sum, t) => sum + t.amount, 0);
-            const target = config?.goal_amount || 1000;
-            const percent = Math.min((total / target) * 100, 100);
+            // 2. Get Total Tips Amount
+            const { data: tips } = await client.from('tips').select('amount').ilike('username', user);
+            
+            const totalRaised = tips ? tips.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
+            const target = settings ? settings.goal_amount : 1000;
+            const percentage = Math.min((totalRaised / target) * 100, 100).toFixed(1);
 
-            document.getElementById('current').innerText = `₹${total}`;
-            document.getElementById('target').innerText = `Goal: ₹${target}`;
-            document.getElementById('reason').innerText = config?.goal_reason || "Tip Goal";
-            document.getElementById('bar').style.width = percent + "%";
+            // Update HTML
+            document.getElementById('reason-text').innerText = settings ? settings.goal_reason : "TIP GOAL";
+            document.getElementById('target').innerText = `₹${target}`;
+            document.getElementById('current').innerText = `₹${totalRaised}`;
+            document.getElementById('percent-text').innerText = `${percentage}%`;
+            document.getElementById('bar').style.width = `${percentage}%`;
         }
 
-        // Listen for new tips in Realtime
-        supabase.channel('public:tips')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tips' }, updateUI)
+        // Listen for Realtime inserts into 'tips' table
+        client.channel('any')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tips' }, payload => {
+                fetchGoalData();
+            })
             .subscribe();
 
-        updateUI(); // Initial load
-
-supabase.channel('custom-filter-channel') // Any name works here
-  .on(
-    'postgres_changes', 
-    { 
-      event: 'INSERT',   // Must be 'INSERT' (capitalized)
-      schema: 'public', 
-      table: 'tips'      // Must match your table name exactly
-    }, 
-    (payload) => {
-      console.log('Change received!', payload);
-      updateUI(); // This function recalculates the bar
-    }
-  )
-  .subscribe();
+        // Initial Load
+        fetchGoalData();
     </script>
 </body>
 </html>
