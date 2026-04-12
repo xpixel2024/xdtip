@@ -1,6 +1,6 @@
 const express = require("express");
-const axios = require("axios");
 const path = require("path");
+const axios = require("axios"); // Make sure you ran 'npm install axios'
 const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
@@ -409,49 +409,86 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
     }
 });
 
-const axios = require("axios");
+// ==========================
+// CASHFREE: CREATE ORDER
+// ==========================
+app.post('/api/create-cashfree-order', async (req, res) => {
+    const { amount, name, message, username } = req.body;
 
-app.post("/api/create-order", async (req, res) => {
+    try {
+        const response = await axios.post('https://sandbox.cashfree.com/pg/orders', {
+            order_amount: parseFloat(amount),
+            order_currency: "INR",
+            order_id: `order_${Date.now()}`,
+            customer_details: {
+                customer_id: `user_${Date.now()}`,
+                customer_name: name,
+                customer_phone: "9999999999", // Required by Cashfree
+            },
+            order_meta: {
+                // IMPORTANT: This tells Cashfree where to send the user and data after payment
+                return_url: `https://${req.get('host')}/api/cashfree-verify?order_id={order_id}&u=${username}&n=${encodeURIComponent(name)}&m=${encodeURIComponent(message)}`
+            }
+        }, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_CLIENT_ID,
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+                'x-api-version': '2023-08-01'
+            }
+        });
 
-  const { amount, creatorId } = req.body;
-
-  const orderId = "order_" + Date.now();
-
-  try {
-
-    const response = await axios.post(
-      "https://api.cashfree.com/pg/orders",
-      {
-        order_id: orderId,
-        order_amount: amount,
-        order_currency: "INR",
-        customer_details: {
-          customer_id: "user_" + Date.now(),
-          customer_phone: "9999999999"
-        }
-      },
-      {
-        headers: {
-          "x-client-id": process.env.CASHFREE_APP_ID,
-          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
-          "x-api-version": "2022-09-01",
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    res.json({
-      payment_session_id: response.data.payment_session_id,
-      order_id: orderId
-    });
-
-  } catch (err) {
-    console.error(err.response?.data);
-    res.json({ error: "Order creation failed" });
-  }
-
+        res.json({ payment_session_id: response.data.payment_session_id });
+    } catch (error) {
+        console.error("Cashfree Order Error:", error.response?.data || error.message);
+        res.status(500).json({ error: "Gateway Error" });
+    }
 });
 
+// ==========================
+// CASHFREE: VERIFY & SAVE TO SUPABASE
+// ==========================
+app.get('/api/cashfree-verify', async (req, res) => {
+    const { order_id, u, n, m } = req.query;
+
+    try {
+        // 1. Verify with Cashfree
+        const verifyRes = await axios.get(`https://sandbox.cashfree.com/pg/orders/${order_id}`, {
+            headers: {
+                'x-client-id': process.env.CASHFREE_CLIENT_ID,
+                'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+                'x-api-version': '2023-08-01'
+            }
+        });
+
+        if (verifyRes.data.order_status === "PAID") {
+            // 2. Save to Supabase (Matches your original /api/tip logic)
+            const { error } = await supabase
+                .from("tips")
+                .insert([{
+                    username: u,
+                    sender_name: n,
+                    message: m,
+                    amount: verifyRes.data.order_amount,
+                    payment_id: order_id
+                }]);
+
+            if (error) throw error;
+
+            // 3. Redirect back to profile with success
+            res.send(`
+                <script>
+                    alert("CREDIT TRANSMITTED SUCCESSFULLY!");
+                    window.location.href = "/${u}";
+                </script>
+            `);
+        } else {
+            res.redirect(`/${u}?status=failed`);
+        }
+    } catch (err) {
+        console.error("Verification Error:", err.message);
+        res.status(500).send("Verification Failed");
+    }
+});
 // ===================
 // START SERVER
 // ===================
