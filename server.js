@@ -409,6 +409,49 @@ app.post('/api/admin/approve-kyc', async (req, res) => {
     }
 });
 
+const axios = require("axios");
+
+app.post("/api/create-order", async (req, res) => {
+
+  const { amount, creatorId } = req.body;
+
+  const orderId = "order_" + Date.now();
+
+  try {
+
+    const response = await axios.post(
+      "https://api.cashfree.com/pg/orders",
+      {
+        order_id: orderId,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: {
+          customer_id: "user_" + Date.now(),
+          customer_phone: "9999999999"
+        }
+      },
+      {
+        headers: {
+          "x-client-id": process.env.CASHFREE_APP_ID,
+          "x-client-secret": process.env.CASHFREE_SECRET_KEY,
+          "x-api-version": "2022-09-01",
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    res.json({
+      payment_session_id: response.data.payment_session_id,
+      order_id: orderId
+    });
+
+  } catch (err) {
+    console.error(err.response?.data);
+    res.json({ error: "Order creation failed" });
+  }
+
+});
+
 // ===================
 // START SERVER
 // ===================
