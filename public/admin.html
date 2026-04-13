@@ -24,13 +24,13 @@
         .main-content { flex: 1; padding: 40px; overflow-y: auto; }
         .header-title { font-size: 28px; margin-top: 0; margin-bottom: 30px; border-bottom: 1px solid #334155; padding-bottom: 15px;}
 
-        /* --- CARDS --- */
-        .cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px; }
-        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
-        .card h3 { margin: 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; }
-        .card .value { font-size: 32px; font-weight: 800; margin: 10px 0 0 0; color: #fff; }
-        .card .value.green { color: #22c55e; }
-        .card .value.red { color: #ef4444; }
+        /* --- FORMS & INPUTS --- */
+        .payout-form { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; max-width: 500px; margin-bottom: 30px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; outline: none; }
+        .btn-submit { background: #38bdf8; color: #0f172a; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
+        .btn-submit:hover { background: #0ea5e9; }
 
         /* --- TABLES --- */
         .table-container { background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; display: none; }
@@ -39,28 +39,26 @@
         th, td { padding: 15px 20px; border-bottom: 1px solid #334155; }
         th { background: #0f172a; font-size: 13px; color: #94a3b8; text-transform: uppercase; }
         td { font-size: 15px; }
-        tr:hover { background: #334155; }
         
-        .badge { background: #3b82f6; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .badge.verified { background: #22c55e; color: #000; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge.success { background: #22c55e; color: #000; }
         .badge.pending { background: #f59e0b; color: #000; }
-        .badge.danger { background: #ef4444; color: #fff; }
-
-        .btn-approve { background: #22c55e; color: #000; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .btn-approve:hover { background: #16a34a; }
+        .badge.failed { background: #ef4444; color: #fff; }
 
         #loader { position: absolute; top:0; left:0; width:100%; height:100%; background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 100; }
     </style>
 </head>
 <body>
 
-    <div id="loader"><h2 style="color:#38bdf8;">Authenticating Admin...</h2></div>
+    <div id="loader"><h2>Authenticating Admin...</h2></div>
 
     <div class="sidebar">
         <h2>XDTIP ADMIN</h2>
         <button class="nav-btn active" onclick="switchTab('dashboard')">Dashboard</button>
+        <button class="nav-btn" onclick="switchTab('payouts')">Payouts (Settlement)</button>
         <button class="nav-btn" onclick="switchTab('users')">All Users (KYC)</button>
         <button class="nav-btn" onclick="switchTab('tips')">Transactions</button>
+        <button class="nav-btn" onclick="switchTab('payouts')">Payouts (Settlement)</button>
         <button class="nav-btn alert" onclick="switchTab('fraud')">Fraud Logs</button>
         <button class="nav-btn logout-btn" onclick="logout()">Exit Admin</button>
     </div>
@@ -68,65 +66,109 @@
     <div class="main-content">
         <h1 class="header-title" id="page-title">Platform Overview</h1>
 
-        <div id="tab-dashboard" class="table-container active" style="background:transparent; border:none;">
-            <div class="cards-grid">
-                <div class="card"><h3>Total Users</h3><p class="value" id="stat-users">0</p></div>
-                <div class="card"><h3>Total Tips</h3><p class="value" id="stat-tips">0</p></div>
-                <div class="card"><h3>Platform Volume</h3><p class="value green" id="stat-revenue">₹0</p></div>
-                <div class="card" style="border-color:#ef4444;"><h3>Flagged (Fraud)</h3><p class="value red" id="stat-fraud">0</p></div>
+        <div id="tab-payouts" class="table-container">
+            <div style="padding: 20px;">
+                <div class="payout-form">
+                    <h3 style="margin-top:0;">Create New Settlement</h3>
+                    <div class="form-group">
+                        <label>Select User</label>
+                        <select id="payout-user-list">
+                            <option value="">Loading users...</option>
+                        </select>
+                    </div>
+
+                    <div id="tab-payouts" class="table-container">
+    <div style="padding: 20px;">
+        <div class="payout-form" style="background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; max-width: 500px; margin-bottom: 30px;">
+            <h3 style="margin-top:0; color: #38bdf8;">Create New Settlement</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; color:#94a3b8; font-size:14px; margin-bottom:5px;">Select User</label>
+                <select id="payout-user-list" style="width:100%; padding:10px; border-radius:6px; background:#0f172a; color:#fff; border:1px solid #334155;">
+                    <option value="">Loading users...</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; color:#94a3b8; font-size:14px; margin-bottom:5px;">Settlement Amount (₹)</label>
+                <input type="number" id="payout-amount" placeholder="Enter amount" style="width:95%; padding:10px; border-radius:6px; background:#0f172a; color:#fff; border:1px solid #334155;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; color:#94a3b8; font-size:14px; margin-bottom:5px;">Transaction ID (T_ID)</label>
+                <input type="text" id="payout-tid" placeholder="UTR or Transaction ID" style="width:95%; padding:10px; border-radius:6px; background:#0f172a; color:#fff; border:1px solid #334155;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display:block; color:#94a3b8; font-size:14px; margin-bottom:5px;">Status</label>
+                <select id="payout-status" style="width:100%; padding:10px; border-radius:6px; background:#0f172a; color:#fff; border:1px solid #334155;">
+                    <option value="pending" selected>Pending</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+
+            <button onclick="processPayout()" style="width:100%; padding:12px; background:#38bdf8; color:#0f172a; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Submit Payout</button>
+        </div>
+
+        <h3 style="margin-bottom: 15px;">Recent Payout Logs</h3>
+        <table>
+            <thead>
+                <tr><th>Username</th><th>Amount</th><th>T_ID</th><th>Status</th><th>Date</th></tr>
+            </thead>
+            <tbody id="payouts-tbody"></tbody>
+        </table>
+    </div>
+</div>
+                    
+                    <div class="form-group">
+                        <label>Settlement Amount (₹)</label>
+                        <input type="number" id="payout-amount" placeholder="e.g. 500">
+                    </div>
+                    <div class="form-group">
+                        <label>Transaction ID (T_ID)</label>
+                        <input type="text" id="payout-tid" placeholder="Enter bank UTR or T_ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="payout-status">
+                            <option value="pending" selected>Pending</option>
+                            <option value="success">Success</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                    <button class="btn-submit" onclick="processPayout()">Submit Payout</button>
+                </div>
+
+                <h3 style="margin-top: 40px;">Recent Payout Logs</h3>
+                <table>
+                    <thead>
+                        <tr><th>Username</th><th>Amount</th><th>T_ID</th><th>Date</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="payouts-tbody"></tbody>
+                </table>
             </div>
         </div>
 
-        <div id="tab-users" class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Legal Name</th>
-                        <th>UPI ID</th>
-                        <th>PAN Document</th>
-                        <th>Joined Date</th>
-                        <th>KYC Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="users-tbody"></tbody>
-            </table>
+        <div id="tab-dashboard" class="table-container active" style="background:transparent; border:none;">
+             </div>
         </div>
-
-        <div id="tab-tips" class="table-container">
-            <table>
-                <thead>
-                    <tr><th>Creator</th><th>Sender</th><th>Amount</th><th>Date</th></tr>
-                </thead>
-                <tbody id="tips-tbody"></tbody>
-            </table>
-        </div>
-
-        <div id="tab-fraud" class="table-container" style="border-color: #ef4444;">
-            <table>
-                <thead>
-                    <tr><th>Flag Reason</th><th>Creator targeted</th><th>Sender Details</th><th>Suspicious Amount</th></tr>
-                </thead>
-                <tbody id="fraud-tbody"></tbody>
-            </table>
-        </div>
-    </div>
 
     <script>
         const client = window.supabase.createClient(
             "https://yohrquotbdmsxfeyxtqr.supabase.co",
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvaHJxdW90YmRtc3hmZXl4dHFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzA5MzUsImV4cCI6MjA5MDk0NjkzNX0.C_8yl1JkBYUCoHjsFQWalWipOLmzJMJsJ8QyKjZu8MM"
+            "YOUR_ANON_KEY" // Use your actual key
         );
 
         let adminEmail = "";
+        let cachedUsers = [];
 
         async function bootAdmin() {
             const { data: { session } } = await client.auth.getSession();
             if (!session) { window.location.href = "/login"; return; }
             adminEmail = session.user.email;
-
             fetchAdminData();
+            fetchPayoutLogs();
         }
 
         async function fetchAdminData() {
@@ -136,117 +178,127 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: adminEmail })
                 });
-
                 const data = await response.json();
-                if (!data.success) { alert(data.error); window.location.href = "/dashboard"; return; }
+                if (!data.success) return;
 
                 document.getElementById('loader').style.display = 'none';
                 
-                // Populate Cards
-                document.getElementById('stat-users').innerText = data.totalUsers;
-                document.getElementById('stat-tips').innerText = data.totalTips;
-                document.getElementById('stat-revenue').innerText = "₹" + data.totalRevenue.toLocaleString('en-IN');
-                document.getElementById('stat-fraud').innerText = data.fraudCount;
+                // Save users for the payout dropdown
+                cachedUsers = data.users;
+                const dropdown = document.getElementById('payout-user-list');
+                dropdown.innerHTML = '<option value="">-- Choose User --</option>' + 
+                    data.users.map(u => `<option value="${u.username}" data-id="${u.id}">${u.username} (${u.name || 'No Name'})</option>`).join('');
 
-                // Populate Users & KYC (Updated for Text Column)
-                // Populate Users & KYC (Mapped to exact Supabase columns)
-                const usersHtml = data.users.map(u => {
-                    const isVerified = (u.kyc === 'true'); // Looking for lowercase 'true'
-                    const currentStatusText = u.kyc || 'Pending';
-
-                    // 1. Safe Fallbacks using your exact column names
-                    const fullName = u.name || '<span style="color:#64748b; font-size:12px; font-style:italic;">Not provided</span>';
-                    const upiId = u.upi || '<span style="color:#64748b; font-size:12px; font-style:italic;">Not provided</span>';
-                    
-                    // 2. Clickable Image Link for PAN Photo
-                    let panPhotoHtml = '<span style="color:#64748b; font-size:12px; font-style:italic;">No photo</span>';
-                    if (u.pan_url) {
-                        // Opens the image in a safe, new tab
-                        panPhotoHtml = `<a href="${u.pan_url}" target="_blank" style="color:#38bdf8; text-decoration:none; font-weight:bold;">🖼️ View PAN</a>`;
-                    }
-
-                    return `
-                    <tr>
-                        <td style="font-weight:bold; color:#fff;">${u.username}</td>
-                        <td style="color:#cbd5e1;">${fullName}</td>
-                        <td style="color:#a855f7; font-family:monospace;">${upiId}</td>
-                        <td>${panPhotoHtml}</td>
-                        <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                        <td>${isVerified 
-                            ? '<span class="badge verified">✓ Verified</span>' 
-                            : `<span class="badge pending">${currentStatusText}</span>`}
-                        </td>
-                        <td>${!isVerified 
-                            ? `<button class="btn-approve" onclick="approveKYC('${u.username}')">Approve KYC</button>` 
-                            : '<span style="color:#64748b;">Completed</span>'}
-                        </td>
-                    </tr>
-                    `;
-                }).join('');
-                document.getElementById('users-tbody').innerHTML = usersHtml;
-
-                // Populate Transactions
-                const tipsHtml = data.tips.map(t => `
-                    <tr>
-                        <td style="color:#38bdf8; font-weight:bold;">${t.username}</td>
-                        <td>${t.sender_name}</td>
-                        <td style="color:#22c55e; font-weight:bold;">₹${t.amount}</td>
-                        <td>${new Date(t.created_at).toLocaleString()}</td>
-                    </tr>
-                `).join('');
-                document.getElementById('tips-tbody').innerHTML = tipsHtml;
-
-                // Populate Fraud Logs
-                if (data.fraudLogs.length === 0) {
-                    document.getElementById('fraud-tbody').innerHTML = `<tr><td colspan="4" style="text-align:center; color:#22c55e;">No fraudulent activity detected.</td></tr>`;
-                } else {
-                    const fraudHtml = data.fraudLogs.map(f => `
-                        <tr style="background: rgba(239, 68, 68, 0.1);">
-                            <td><span class="badge danger">High Amount Flag</span></td>
-                            <td style="color:#fff; font-weight:bold;">${f.username}</td>
-                            <td>${f.sender_name}</td>
-                            <td style="color:#ef4444; font-weight:bold; font-size:18px;">₹${f.amount}</td>
-                        </tr>
-                    `).join('');
-                    document.getElementById('fraud-tbody').innerHTML = fraudHtml;
-                }
-
+                // ... rest of your existing population logic for stats/users/tips ...
             } catch (err) { console.error(err); }
         }
 
-        // KYC Action
-        async function approveKYC(username) {
-            if (!confirm(`Are you sure you want to approve KYC for ${username}?`)) return;
-
-            try {
-                const res = await fetch('/api/admin/approve-kyc', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: adminEmail, targetUsername: username })
-                });
-                const result = await res.json();
-                
-                if (result.success) {
-                    alert(result.message);
-                    fetchAdminData(); // Refresh table instantly
-                } else {
-                    alert(result.error);
-                }
-            } catch (err) { alert("Network error."); }
+        async function fetchPayoutLogs() {
+            const { data, error } = await client
+                .from('payouts')
+                .select('*')
+                .order('created_at', { ascending: false });
+            
+            if (data) {
+                document.getElementById('payouts-tbody').innerHTML = data.map(p => `
+                    <tr>
+                        <td>${p.username}</td>
+                        <td style="color:#22c55e; font-weight:bold;">₹${p.amount}</td>
+                        <td style="font-family:monospace;">${p.t_id}</td>
+                        <td>${new Date(p.created_at).toLocaleDateString()}</td>
+                        <td><span class="badge ${p.status}">${p.status.toUpperCase()}</span></td>
+                    </tr>
+                `).join('');
+            }
         }
 
-        // Tabs
+        async function processPayout() {
+            const userSelect = document.getElementById('payout-user-list');
+            const selectedOption = userSelect.options[userSelect.selectedIndex];
+            
+            const username = userSelect.value;
+            const userId = selectedOption.getAttribute('data-id'); // Fetches UUID from the data attribute
+            const amount = document.getElementById('payout-amount').value;
+            const t_id = document.getElementById('payout-tid').value;
+            const status = document.getElementById('payout-status').value;
+
+            if (!username || !amount || !t_id) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            const { error } = await client.from('payouts').insert([{
+                id: userId, // The UUID fetched from database
+                username: username,
+                amount: parseFloat(amount),
+                t_id: t_id,
+                status: status,
+                created_at: new Date().toISOString()
+            }]);
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("Payout recorded successfully!");
+                // Reset form
+                document.getElementById('payout-amount').value = '';
+                document.getElementById('payout-tid').value = '';
+                fetchPayoutLogs();
+            }
+        }
+
+        // 1. Function to populate the dropdown (Call this inside your fetchAdminData after getting 'data.users')
+function populateUserDropdown(users) {
+    const dropdown = document.getElementById('payout-user-list');
+    dropdown.innerHTML = '<option value="">-- Select Username --</option>' + 
+        users.map(u => `<option value="${u.username}" data-uuid="${u.id}">${u.username}</option>`).join('');
+}
+
+// 2. Function to handle the Supabase Insert
+async function processPayout() {
+    const userSelect = document.getElementById('payout-user-list');
+    const selectedOption = userSelect.options[userSelect.selectedIndex];
+    
+    const username = userSelect.value;
+    const uuid = selectedOption.getAttribute('data-uuid'); // Fetches the actual ID
+    const amount = document.getElementById('payout-amount').value;
+    const t_id = document.getElementById('payout-tid').value;
+    const status = document.getElementById('payout-status').value;
+
+    if (!username || !amount || !t_id) return alert("All fields are required!");
+
+    const { data, error } = await client.from('payouts').insert([{
+        id: uuid,           // Mapping UUID to id column
+        username: username,
+        amount: parseFloat(amount),
+        t_id: t_id,
+        status: status,
+        created_at: new Date().toISOString()
+    }]);
+
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        alert("Payout successfully recorded!");
+        // Optional: clear inputs
+        document.getElementById('payout-amount').value = '';
+        document.getElementById('payout-tid').value = '';
+        location.reload(); // Refresh to see logs
+    }
+}
+
         function switchTab(tabName) {
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Find the button that was clicked or matches the tabName
+            const clickedBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.innerText.toLowerCase().includes(tabName));
+            if(clickedBtn) clickedBtn.classList.add('active');
+
             document.querySelectorAll('.table-container').forEach(tc => tc.classList.remove('active'));
             document.getElementById('tab-' + tabName).classList.add('active');
-
-            const titleMap = { 'dashboard': 'Platform Overview', 'users': 'User KYC Management', 'tips': 'Global Transactions', 'fraud': 'Security & Fraud Detection' };
+            
+            const titleMap = { 'dashboard': 'Platform Overview', 'users': 'User KYC Management', 'tips': 'Global Transactions', 'fraud': 'Security & Fraud Detection', 'payouts': 'Payout & Settlements' };
             document.getElementById('page-title').innerText = titleMap[tabName];
         }
-
-        function logout() { window.location.href = "/dashboard"; }
 
         bootAdmin();
     </script>
